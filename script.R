@@ -151,10 +151,10 @@ summary(Logit)
 lr_prob1 <- predict(Logit, test,type="response")
 lr_pred1 <- as.numeric(ifelse(lr_prob1 > 0.05,"1","0"))
 
-table(Predicted = lr_pred1, Actual = test$stroke)
+tb <- table(Predicted = lr_pred1, Actual = test$stroke)[2:1, 2:1]
+tb
+F_meas(tb) # F1 should be 0.22
+recall(tb)  # Recall should be 0.87
+precision(tb) # Precision should be 0.13
 
-F1_Score(test$stroke, lr_pred1, positive = NULL) #F1 should be 0.22
-Recall(test$stroke, lr_pred1)  # that is wrong, Recall should be 0.87
-Precision(test$stroke, lr_pred1) # that is also wrong, Precision should be 0.13
-
-test_roc <- roc(test$stroke ~ lr_prob1, plot = TRUE, print.auc = TRUE)
+test_roc <- roc(test$stroke ~ lr_prob1, plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
