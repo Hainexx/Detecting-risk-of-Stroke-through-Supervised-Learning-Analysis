@@ -26,7 +26,9 @@ library(ROCR)
 library(pROC)
 library(ggpubr)
 library(Hmisc)
-#dt<-read.csv("stroke.csv",header=TRUE,sep=",")
+library(mlr)
+library(DMwR)
+
 stroke <- read_csv("stroke.csv", col_types = cols(gender = col_factor(levels = c("Male","Female")), 
                                                   hypertension = col_factor(levels = c("0","1")), 
                                                   heart_disease = col_factor(levels = c("0","1")), 
@@ -47,7 +49,7 @@ stroke <- stroke[stroke$gender == "Male" | stroke$gender == "Female",]
 
 # rm "Never_worked"
 stroke$work_type <- as.factor(stroke$work_type)
-#stroke <- stroke[!stroke$work_type == "Never_worked",]
+stroke <- stroke[!stroke$work_type == "Never_worked",]
 
 # data visualization ----------------------------------
 ggplot(stroke, aes(x=as.factor(stroke),y=age))+
@@ -137,24 +139,47 @@ for (i in 1:20) {
 dt <- dt[-c(3117),]
 sum(is.na(dt))
 
+# Solve the under sampling problem with SMOTE algho to create synth new data 
+dt <- as.data.frame(dt)
+trainSplit <- SMOTE(stroke ~ ., dt, perc.over = 2000, perc.under=10)
+
+dt_synth<- rbind(trainSplit,dt)
+
+length(which(dt_synth$stroke == 1)) # Now we have a balanced dataset 
+length(which(dt_synth$stroke == 0))
+
 # train & test --------------------------------------
 set.seed(42)
-split_train_test <- createDataPartition(dt$stroke, p=0.8, list=FALSE)
-train <- dt[split_train_test,]
-test <-  dt[-split_train_test,]
+split_train_test <- createDataPartition(dt_synth$stroke, p=0.8, list=FALSE)
+train <- dt_synth[split_train_test,]
+test <-  dt_synth[-split_train_test,]
 
 # Regression ----------------------------------------
 Logit<-glm(stroke~., data=train, family=binomial)
 summary(Logit)
 
-
-lr_prob1 <- predict(Logit, test,type="response")
-lr_pred1 <- as.numeric(ifelse(lr_prob1 > 0.05,"1","0"))
+lr_prob1 <- predict(Logit, test, type="response")
+lr_pred1 <- as.numeric(ifelse(lr_prob1 > 0.4,"1","0"))
 
 tb <- table(Predicted = lr_pred1, Actual = test$stroke)[2:1, 2:1]
+tb
+
+F_meas(tb) # F1 
+recall(tb)  # Recall 
+precision(tb) # Precision 
+
+test_roc <- roc(test$stroke ~ lr_prob1, plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+
+
+
+# Explore possibilities with more "BlackBox" alghorithms 
+
+model <- caret::train(stroke~., data=train, method = "LogitBoost")
+l <- caret::predict.train(model, newdata = test)
+tb <- table(Predicted = l, Actual = test$stroke)[2:1, 2:1]
 tb
 F_meas(tb) # F1 should be 0.22
 recall(tb)  # Recall should be 0.87
 precision(tb) # Precision should be 0.13
 
-test_roc <- roc(test$stroke ~ lr_prob1, plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+test_roc <- roc(test$stroke ~ l, plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
