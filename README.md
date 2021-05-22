@@ -14,4 +14,7 @@
 
 ## TODO:
 - Cercare di interpretare i risultati per fare inferenza
-- Fare Viz migliori 
+- Fare Visualizations migliori e più esplicative. 
+- Provare ad implementare una qualche forma di feature selection.
+- implementare altri tipi algoritmi e compararne le performance. 
+
