@@ -178,8 +178,8 @@ model <- caret::train(stroke~., data=train, method = "LogitBoost")
 l <- caret::predict.train(model, newdata = test)
 tb <- table(Predicted = l, Actual = test$stroke)[2:1, 2:1]
 tb
-F_meas(tb) # F1 should be 0.22
-recall(tb)  # Recall should be 0.87
-precision(tb) # Precision should be 0.13
+F_meas(tb) 
+recall(tb)  
+precision(tb)  
 
 test_roc <- roc(test$stroke ~ l, plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
