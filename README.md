@@ -2,19 +2,19 @@
 ## Worked Out 
 
 ### 23/05 Commit by Gaspare:
-- Ho fatto minimi cambiamenti nella data preparation 
+- Made minimal changes in the data preparation 
 - Data Viz
-- invece di rimuovere tutte le osservazione senza dati sul BMI, ho usato un Decision Tree per predirre il valore del loro BMI in base a tutti gli altri dati. 
-- Per semplificare l'interpretazione dei dati ho codificato tutte le variabili categoriche con OneHotEncoder 
-- Il più grande problema di questi dati è che la classificazione d'interesse è un "evento raro", meno del 5% dei nostri dati infatti sono classificati positivamente. Per ovviare a questo problema ho usato la SMOTE (Synthetic Minority Over-sampling Technique) per bilanciare il dataset con dati sintetici. Questo riduce drasticamente il rischio di bias.
-- Ho invertito la Confusion Matrix perchè impostava i negativi come positivi e viceversa rendendo le metriche di Recall e Precision (e conseguentemente F1) completamente sbagliate.
-- Ho aggiunto un altro algoritmo un po' più BlackBox (ci tornerò su) che performa bene uguale ma con le metriche opposte. 
+- instead of removing all observations without BMI data, I used a Decision Tree to predict the value of their BMI based on all other data. 
+- To simplify the interpretation of the data, I coded all categorical variables with OneHotEncoder. 
+- The biggest problem with this data is that the classification of interest is a "rare event", less than 5% of our data in fact are positively classified. To overcome this problem, I used SMOTE (Synthetic Minority Over-sampling Technique) to balance the dataset with synthetic data. This drastically reduces the risk of bias.
+- I reversed the Confusion Matrix because it was setting negatives as positives and vice versa making the Recall and Precision (and consequently F1) metrics completely wrong.
+- I added another slightly algorithm, a bit more BlackBox (I'll get back to that) that performs equally well but with the opposite metrics. 
 
 
 
 ## TODO:
-- Cercare di interpretare i risultati per fare inferenza
-- Fare Visualizations migliori e più esplicative. 
-- Provare ad implementare una qualche forma di feature selection.
-- implementare altri tipi algoritmi e compararne le performance. 
+- Try to interpret the results to make inference.
+- Make better and explanatory visualisations. 
+- Try to implement some kind of feature selection.
+- Implement other types of algorithms and compare performance. 
 
