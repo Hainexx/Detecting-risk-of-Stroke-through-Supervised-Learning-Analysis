@@ -29,6 +29,8 @@ library(Hmisc)
 library(mlr)
 library(DMwR)
 
+set.seed(42)
+
 stroke <- read_csv("stroke.csv", col_types = cols(gender = col_factor(levels = c("Male","Female")), 
                                                   hypertension = col_factor(levels = c("0","1")), 
                                                   heart_disease = col_factor(levels = c("0","1")), 
@@ -99,7 +101,7 @@ flattenCorrMatrix <- function(cormat, pmat) {
 flattenCorrMatrix(corr$r, corr$P)
 corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
-# data preprocessing ------------------------------
+# data Preprocessing, Econding with OneHotEncoding ------------------------------
 
 dummy <- dummyVars(" ~ gender + work_type + smoking_status + ever_married + Residence_type", data=stroke)
 newdata <- data.frame(predict(dummy, newdata = stroke))
@@ -117,7 +119,7 @@ missing_index <-which(is.na(dt$bmi))
 X <- dt[missing_index,]
 train_v <- dt[-c(missing_index),]
 Y <- subset(X, select = -c(bmi)) 
-tree = train(bmi ~ ., 
+tree = caret::train(bmi ~ ., 
              data=train_v, 
              method="rpart", 
              trControl = trainControl(method = "cv"))
@@ -136,7 +138,7 @@ for (i in 1:20) {
   print(which(is.na(dt[,i])))
 }
 
-dt <- dt[-c(3117),]
+dt <- dt[-c(3104),]
 sum(is.na(dt))
 
 # Solve the under sampling problem with SMOTE algho to create synth new data 
@@ -154,6 +156,12 @@ split_train_test <- createDataPartition(dt_synth$stroke, p=0.8, list=FALSE)
 train <- dt_synth[split_train_test,]
 test <-  dt_synth[-split_train_test,]
 
+count(train[train$stroke == 1,])
+count(train[train$stroke == 0,])
+count(test[test$stroke == 1,])
+count(test[test$stroke == 0,])
+
+
 # Regression ----------------------------------------
 Logit<-glm(stroke~., data=train, family=binomial)
 summary(Logit)
@@ -164,6 +172,7 @@ lr_pred1 <- as.numeric(ifelse(lr_prob1 > 0.4,"1","0"))
 tb <- table(Predicted = lr_pred1, Actual = test$stroke)[2:1, 2:1]
 tb
 
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
 F_meas(tb) # F1 
 recall(tb)  # Recall 
 precision(tb) # Precision 
@@ -175,6 +184,7 @@ test_roc <- roc(test$stroke ~ lr_prob1, plot = TRUE, print.auc = TRUE,percent=TR
 # Explore possibilities with more "BlackBox" alghorithms 
 
 model <- caret::train(stroke~., data=train, method = "LogitBoost")
+
 l <- caret::predict.train(model, newdata = test)
 tb <- table(Predicted = l, Actual = test$stroke)[2:1, 2:1]
 tb
@@ -182,4 +192,57 @@ F_meas(tb)
 recall(tb)  
 precision(tb)  
 
-test_roc <- roc(test$stroke ~ l, plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+
+# Random Forest -----------------------------
+
+#10 folds repeat 3 times
+control <- trainControl(method='repeatedcv', 
+                        number=10, 
+                        repeats=3)
+#Metric compare model is Accuracy
+metric <- "F1"
+
+
+#Number randomely variable selected is mtry
+mtry <- sqrt(ncol(train))
+tunegrid <- expand.grid(.mtry=mtry)
+
+rf_default <- caret::train(stroke~.,
+                    data=train,
+                    method='rf',
+                    metric= "f1",
+                    tuneGrid=tunegrid, 
+                    trControl=control)
+
+print(rf_default)
+
+model_rf <- caret::predict.train(rf_default, newdata = test)
+model_rf
+
+tb <- table(Predicted = model_rf, Actual = test$stroke)[2:1, 2:1]
+tb
+
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
+F_meas(tb) # F1 
+recall(tb)  # Recall 
+precision(tb) # Precision 
+
+
+set.seed(400)
+knnGrid <-  expand.grid(k = c(1:1))
+ctrl <- trainControl(method="repeatedcv",repeats = 3) #,classProbs=TRUE,summaryFunction = twoClassSummary)
+knnFit <- caret::train(stroke ~ ., data = train, method = "knn", tuneGrid = knnGrid)
+
+md <- predict(knnFit, newdata = test)
+
+tb <- table(Predicted = md, Actual = test$stroke)[2:1, 2:1]
+tb
+
+#Output of kNN fit
+knnFit
+
+split_train_test <- createDataPartition(dt$stroke, p=0.8, list=FALSE)
+train <- dt[split_train_test,]
+test <-  dt[-split_train_test,]
+
+
