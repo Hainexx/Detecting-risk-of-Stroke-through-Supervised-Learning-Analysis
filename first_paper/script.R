@@ -232,29 +232,30 @@ precision(tb) # Precision
 #10 folds repeat 3 times
 control <- trainControl(method='repeatedcv', 
                         number=10, 
-                        repeats=10,
-                        search = "random",
-                        classProbs = TRUE)
+                        repeats=3,
+                        #search = "random",
+                        #classProbs = TRUE
+                        )
 
 #Metric compare model is Accuracy
-metric <- "roc_auc"
+metric <- "Accuracy"
 
 
 #Number randomely variable selected is mtry
 mtry <- sqrt(ncol(train))
 
-tunegrid <- expand.grid(.mtry=rnorm(3,mean=mtry,sd=1))
+tunegrid <- expand.grid(.mtry=rnorm(5,mean=mtry,sd=1))
 
 rf <- caret::train(stroke~.,
                     data=train,
                     method='rf',
                     metric= metric,
-                    #tuneGrid=tunegrid, 
+                    tuneGrid=tunegrid, 
                     trControl=control)
 
 print(rf)
-
-model_rf <- caret::predict.train(rf, newdata = test)
+plot(rf)
+model_rf <- predict(rf, newdata = test)
 
 levels(test$stroke) <- c("X0","X1")
 tb <- table(Predicted = model_rf, Actual = test$stroke)[2:1, 2:1]
@@ -265,5 +266,4 @@ F_meas(tb) # F1
 recall(tb)  # Recall 
 precision(tb) # Precision 
 
-plot(rf)
 
