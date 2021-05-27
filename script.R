@@ -151,7 +151,7 @@ length(which(dt_synth$stroke == 1)) # Now we have a balanced dataset
 length(which(dt_synth$stroke == 0))
 
 # train & test --------------------------------------
-set.seed(42)
+set.seed(45)
 split_train_test <- createDataPartition(dt_synth$stroke, p=0.8, list=FALSE)
 train <- dt_synth[split_train_test,]
 test <-  dt_synth[-split_train_test,]
