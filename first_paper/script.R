@@ -1,6 +1,4 @@
 # library(gmodels)
-# library(GoodmanKruskal)
-# library(corrplot)
 # library(mfx)
 # library(pscl)
 # library(InformationValue)
@@ -9,7 +7,6 @@
 # library(caret)
 # library(pROC)
 # library(gridExtra) 
-# library(tidyverse) 
 # library(rsample)
 # library(e1071) 
 # library(GGally)
@@ -23,19 +20,19 @@
 # library(ROCR)
 # library(pROC)
 # library(ggpubr)
-# library(Hmisc)
 # library(mlr)
-# library(DMwR)
-
+library(tidyverse) 
+library(Hmisc)
+library(DMwR) 
 library(gmodels)
-library(dplyr)
 library(GoodmanKruskal)
 library(corrplot)
 library(pscl)
 library(caret)
 library(pROC)
-library(ggplot2)
 library(readr)
+library(GoodmanKruskal)
+library(corrplot)
 
 set.seed(42)
 
@@ -43,27 +40,27 @@ set.seed(42)
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
-stroke <- read_csv("stroke.csv", col_types = cols(gender = col_factor(levels = c("Male","Female")), 
-                                                  hypertension = col_factor(levels = c("0","1")), 
+stroke <- read_csv("stroke.csv", col_types = cols(hypertension = col_factor(levels = c("0","1")), 
                                                   heart_disease = col_factor(levels = c("0","1")), 
                                                   ever_married = col_factor(levels = c("Yes","No")),
                                                   bmi = col_double(),
+                                                  stroke = col_factor(levels = c("0", "1")),
                                                   Residence_type = col_factor(levels = c("Urban","Rural"))))
 
-sum(is.na(dt))
 
 # data manipulation ----------------------------------
 stroke$id <- NULL
 stroke$smoking_status <- as.factor(stroke$smoking_status)
-stroke$stroke <- as.factor(stroke$stroke)
-
 
 # rm gender "other"
 stroke <- stroke[stroke$gender == "Male" | stroke$gender == "Female",]
+stroke$gender <- as.factor(stroke$gender)
 
 # rm "Never_worked"
-stroke$work_type <- as.factor(stroke$work_type)
 stroke <- stroke[!stroke$work_type == "Never_worked",]
+stroke$work_type <- as.factor(stroke$work_type)
+
+
 
 # data visualization ----------------------------------
 ggplot(stroke, aes(x=as.factor(stroke),y=age))+
@@ -89,6 +86,32 @@ ggplot(stroke, aes(x=as.factor(stroke), y=age, fill="red")) +
 ggplot(stroke, aes(x=as.factor(stroke), y=Residence_type, fill="red")) + 
   geom_jitter()
 
+# deal with NAs -------------------------------
+stroke <- as_tibble(stroke)
+sum(is.na(stroke$bmi))
+missing_index <- which(is.na(stroke$bmi))
+X <- stroke[missing_index,]
+train_v <- stroke[-c(missing_index),]
+
+tree = caret::train(bmi ~ ., 
+                    data=train_v, 
+                    method="rpart", 
+                    trControl = trainControl(method = "cv"))
+
+bmi_pred <- predict(tree, newdata = X)
+
+stroke[missing_index,"bmi"] <- bmi_pred
+sum(is.na(stroke$bmi))
+sum(is.na(stroke))
+
+# check for other NAs
+for (i in 1:11) {
+  print(which(is.na(stroke[,i])))
+}
+
+# clean Glob_Env
+rm(train_v,X,tree, bmi_pred,i,missing_index)
+
 
 # qualitative corr ----------------------------------
 dt.gk<-stroke
@@ -97,7 +120,6 @@ dt.gk$bmi<-NULL
 dt.gk$age<-NULL
 dt.gk$avg_glucose_level<-NULL
 plot(GKtauDataframe(dt.gk))
-
 
 # quantitative corr ---------------------------------
 num <- stroke[c("age","avg_glucose_level","bmi")]
@@ -111,113 +133,58 @@ flattenCorrMatrix <- function(cormat, pmat) {
     p = pmat[ut]
   )
 }
-
 flattenCorrMatrix(corr$r, corr$P)
 corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 # data Preprocessing, Econding with OneHotEncoding ------------------------------
+# 
+# dummy <- dummyVars(" ~ work_type + smoking_status", data=stroke)
+# newdata <- data.frame(predict(dummy, newdata = stroke))
+# a <- stroke[,1:5]
+# b <- stroke[,7:9]
+# dt <- cbind(a, b, newdata, stroke['stroke'])
+# dt[,9:16] <- lapply(dt[,9:16], as.factor)
+# dt <- as_tibble(dt)
 
-dummy <- dummyVars(" ~ gender + work_type + smoking_status + ever_married + Residence_type", data=stroke)
-newdata <- data.frame(predict(dummy, newdata = stroke))
-a <- stroke[,2:4]
-b <- stroke[,8:9]
-dt <- cbind(a, b, newdata, stroke['stroke'])
-dt <- as_tibble(dt)
-
-y <- stroke['stroke']
-
-# deal with NAs -------------------------------
-
-sum(is.na(dt$bmi))
-missing_index <-which(is.na(dt$bmi))
-X <- dt[missing_index,]
-train_v <- dt[-c(missing_index),]
-Y <- subset(X, select = -c(bmi)) 
-tree = caret::train(bmi ~ ., 
-             data=train_v, 
-             method="rpart", 
-             trControl = trainControl(method = "cv"))
-
-bmi_pred <- predict(tree, newdata = X)
-
-x <- mean(bmi_pred)
-
-bmi_pred[202] <- x
-
-dt[missing_index,"bmi"] <- bmi_pred
-sum(is.na(dt$bmi))
-sum(is.na(dt))
-
-for (i in 1:20) {
-  print(which(is.na(dt[,i])))
-}
-
-dt <- dt[-c(3104),]
-sum(is.na(dt))
+rm(a,b,dummy, newdata,dt.gk,num,corr)
 
 
-# Solve the under sampling problem with SMOTE algho to create synth new data 
-
-dt <- as.data.frame(dt)
-dt <- lapply(dt, as.factor)
-dt <- as.data.frame(dt)
-trainSplit <- SMOTE(stroke ~ ., dt, perc.over = 2000, perc.under=10)
-
-dt_synth<- rbind(trainSplit,dt)
-
-length(which(dt_synth$stroke == 1)) # Now we have a balanced dataset 
-length(which(dt_synth$stroke == 0))
-
-dt_synth$work_type.Never_worked <- NULL
-dt_synth$avg_glucose_level <- as.numeric(dt_synth$avg_glucose_level)
-dt_synth$bmi <- as.numeric(dt_synth$bmi)
-dt_synth$age <- as.numeric(dt_synth$age)
-
-# qualitative corr ----------------------------------
-dt.gk<-dt_synth
-dt.gk$stroke<-NULL
-dt.gk$bmi<-NULL
-dt.gk$age<-NULL
-dt.gk$avg_glucose_level<-NULL
-plot(GKtauDataframe(dt.gk))
 
 
-# quantitative corr ---------------------------------
-num <- dt_synth[c("age","avg_glucose_level","bmi")]
-corr <- rcorr(as.matrix(num))
-flattenCorrMatrix <- function(cormat, pmat) {
-  ut <- upper.tri(cormat)
-  data.frame(
-    row = rownames(cormat)[row(cormat)[ut]],
-    column = rownames(cormat)[col(cormat)[ut]],
-    cor  =(cormat)[ut],
-    p = pmat[ut]
-  )
-}
-flattenCorrMatrix(corr$r, corr$P)
-corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 # train & test --------------------------------------
-set.seed(45)
-split_train_test <- createDataPartition(dt_synth$stroke, p=0.8, list=FALSE)
-train <- dt_synth[split_train_test,]
-test <-  dt_synth[-split_train_test,]
+set.seed(42)
+stroke <- as.data.frame(stroke)
+for (i in 1:11) {
+  levels(stroke[,i]) <- make.names(c(levels(stroke[,i])))
+}
 
-count(train[train$stroke == 1,])
-count(train[train$stroke == 0,])
-count(test[test$stroke == 1,])
-count(test[test$stroke == 0,])
+split_train_test <- createDataPartition(y = stroke$stroke, p=0.5, list = F)
+train <- stroke[split_train_test,]
+test <-  stroke[-split_train_test,]
 
+
+# Solve the under sampling problem with SMOTE algho to create synth new data -----------
+
+train <- SMOTE(stroke ~ ., train, perc.over = 2200, perc.under=100)
+
+# Now we have a balanced dataset
+length(which(train$stroke == "X1")) 
+length(which(train$stroke == "X0"))
+
+child <- train[train$work_type == "children",]
+
+summary(child$age)
 
 
 # Regression ----------------------------------------
-Logit<-glm(stroke~., data=train, family=binomial(link = "logit"))
-summary(Logit)
+Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
 
-lr_prob1 <- predict(Logit, test, type="response")
-lr_pred1 <- as.numeric(ifelse(lr_prob1 > 0.4,"1","0"))
+lr_prob1 <- predict(Logit, newdata = test, type="response")
 
-tb <- table(Predicted = lr_pred1, Actual = test$stroke)[2:1, 2:1]
+lr_pred <- as.numeric(ifelse(lr_prob1 > 0.4,"1","0"))
+levels(test$stroke) <- c(0,1)
+tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
 tb
 
 (tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
@@ -225,49 +192,71 @@ F_meas(tb) # F1
 recall(tb)  # Recall 
 precision(tb) # Precision 
 
-test_roc <- roc(test$stroke ~ lr_prob1, plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+
+gbmGrid <- expand.grid(nIter=c(16,96,102))
+trctrl <- trainControl(method = "repeatedcv"
+                       , number = 10
+                       , repeats = 10
+                       , savePredictions=TRUE
+                       , search = "random"
+                       , classProbs = T
+                       , summaryFunction = twoClassSummary
+                       )
+logit_fit <- train(stroke ~., data = train, method = "LogitBoost", trControl=trctrl, metric = "ROC",tuneGrid=gbmGrid)
+logit_fit
+trellis.par.set(caretTheme())
+plot(logit_fit)
+
+pred <- predict(logit_fit, newdata = test
+                , type = "prob"
+                )
+
+#lr_prob1 <- predict(Logit, newdata = test, type="response")
+lr_pred <- as.factor(ifelse(pred[,2] > 0.49,"1","0"))
+
+tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
+tb
+
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
+F_meas(tb) # F1 
+recall(tb)  # Recall 
+precision(tb) # Precision 
 
 
 
 # Explore possibilities with more "BlackBox" alghorithms 
-
-model <- caret::train(stroke~., data=train, method = "LogitBoost")
-
-l <- caret::predict.train(model, newdata = test)
-tb <- table(Predicted = l, Actual = test$stroke)[2:1, 2:1]
-tb
-F_meas(tb) 
-recall(tb)  
-precision(tb)  
-
-
 
 # Random Forest -----------------------------
 
 #10 folds repeat 3 times
 control <- trainControl(method='repeatedcv', 
                         number=10, 
-                        repeats=3)
+                        repeats=10,
+                        search = "random",
+                        classProbs = TRUE)
+
 #Metric compare model is Accuracy
-metric <- "F1"
+metric <- "roc_auc"
 
 
 #Number randomely variable selected is mtry
 mtry <- sqrt(ncol(train))
-tunegrid <- expand.grid(.mtry=mtry)
 
-rf_default <- caret::train(stroke~.,
+tunegrid <- expand.grid(.mtry=rnorm(3,mean=mtry,sd=1))
+
+rf <- caret::train(stroke~.,
                     data=train,
                     method='rf',
-                    metric= "f1",
-                    tuneGrid=tunegrid, 
+                    metric= metric,
+                    #tuneGrid=tunegrid, 
                     trControl=control)
 
-print(rf_default)
+print(rf)
 
-model_rf <- caret::predict.train(rf_default, newdata = test)
-model_rf
+model_rf <- caret::predict.train(rf, newdata = test)
 
+levels(test$stroke) <- c("X0","X1")
 tb <- table(Predicted = model_rf, Actual = test$stroke)[2:1, 2:1]
 tb
 
@@ -275,4 +264,6 @@ tb
 F_meas(tb) # F1 
 recall(tb)  # Recall 
 precision(tb) # Precision 
+
+plot(rf)
 
