@@ -1,6 +1,10 @@
 # Statistical Learning Projects Series 
 ## Worked Out 
 
+### 27/05 Commit by Matteo:
+- Added Rmd file w/ some code cleaning and pretty plots
+- Added utils files w/ different means (data_analysis, data_visualization, ...) 
+
 ### 23/05 Commit by Gaspare:
 - Made minimal changes in the data preparation 
 - Data Viz
@@ -10,11 +14,9 @@
 - I reversed the Confusion Matrix because it was setting negatives as positives and vice versa making the Recall and Precision (and consequently F1) metrics completely wrong.
 - I added another slightly algorithm, a bit more BlackBox (I'll get back to that) that performs equally well but with the opposite metrics. 
 
-
-
 ## TODO:
 - Try to interpret the results to make inference.
 - Make better and explanatory visualisations. 
 - Try to implement some kind of feature selection.
-- Implement other types of algorithms and compare performance. 
-
+- Implement other types of algorithms and compare performance.
+- Add some description to Rmd file
