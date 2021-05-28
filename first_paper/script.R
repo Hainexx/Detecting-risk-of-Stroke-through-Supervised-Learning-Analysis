@@ -21,6 +21,7 @@
 # library(pROC)
 # library(ggpubr)
 # library(mlr)
+
 library(tidyverse) 
 library(Hmisc)
 library(DMwR) 
@@ -85,6 +86,7 @@ ggplot(stroke, aes(x=as.factor(stroke), y=age, fill="red")) +
 
 ggplot(stroke, aes(x=as.factor(stroke), y=Residence_type, fill="red")) + 
   geom_jitter()
+s
 
 # deal with NAs -------------------------------
 stroke <- as_tibble(stroke)
@@ -279,6 +281,46 @@ rf <- caret::train(stroke~.,
                     metric= metric,
                     tuneGrid=tunegrid, 
                     trControl=control)
+
+print(rf)
+plot(rf)
+model_rf <- predict(rf, newdata = test)
+
+levels(test$stroke) <- c("X0","X1")
+tb <- table(Predicted = model_rf, Actual = test$stroke)[2:1, 2:1]
+tb
+
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
+F_meas(tb) # F1 
+recall(tb)  # Recall 
+precision(tb) # Precision 
+
+
+# Decision Tree-----------------------------
+
+#10 folds repeat 3 times
+control <- trainControl(method='repeatedcv', 
+                        number=10, 
+                        repeats=3,
+                        #search = "random",
+                        #classProbs = TRUE
+)
+
+#Metric compare model is Accuracy
+metric <- "Accuracy"
+
+
+#Number randomely variable selected is mtry
+mtry <- sqrt(ncol(train))
+
+tunegrid <- expand.grid(.mtry=rnorm(5,mean=mtry,sd=1))
+
+rf <- caret::train(stroke~.,
+                   data=train,
+                   method='rf',
+                   metric= metric,
+                   tuneGrid=tunegrid, 
+                   trControl=control)
 
 print(rf)
 plot(rf)
