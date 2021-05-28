@@ -86,7 +86,6 @@ ggplot(stroke, aes(x=as.factor(stroke), y=age, fill="red")) +
 
 ggplot(stroke, aes(x=as.factor(stroke), y=Residence_type, fill="red")) + 
   geom_jitter()
-s
 
 # deal with NAs -------------------------------
 stroke <- as_tibble(stroke)
