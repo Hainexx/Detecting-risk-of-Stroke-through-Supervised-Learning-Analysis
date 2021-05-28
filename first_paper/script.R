@@ -146,7 +146,7 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 # dt[,9:16] <- lapply(dt[,9:16], as.factor)
 # dt <- as_tibble(dt)
 
-rm(a,b,dummy, newdata,dt.gk,num,corr)
+#rm(a,b,dummy, newdata,dt.gk,num,corr)
 
 
 
@@ -166,7 +166,7 @@ test <-  stroke[-split_train_test,]
 
 # Solve the under sampling problem with SMOTE algho to create synth new data -----------
 
-train <- SMOTE(stroke ~ ., train, perc.over = 2200, perc.under=100)
+train <- SMOTE(stroke ~ ., train, perc.over = 2200, perc.under=100,k = 18)
 
 # Now we have a balanced dataset
 length(which(train$stroke == "X1")) 
@@ -179,14 +179,26 @@ summary(child$age)
 
 # Regression ----------------------------------------
 Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
+Logit
 
 lr_prob1 <- predict(Logit, newdata = test, type="response")
 
-lr_pred <- as.numeric(ifelse(lr_prob1 > 0.4,"1","0"))
-levels(test$stroke) <- c(0,1)
+lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
+i<-1
+for (thresh in seq(0.25,0.75,0.05)){
+  lr_pred <- ifelse(lr_prob1 > thresh,1,0)
+  cm <- table(
+    as.factor(lr_pred),
+    as.factor(test$stroke)
+  )[2:1, 2:1]
+  lr_preds_test[i] <- F_meas(cm)
+  i<-i+1
+}
+names(lr_preds_test) <- seq(0.25,0.75,0.05)
+lr_preds_test
+lr_pred <- as.numeric(ifelse(lr_prob1 > 0.65,"1","0"))
 tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
 tb
-
 (tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
 F_meas(tb) # F1 
 recall(tb)  # Recall 
@@ -194,6 +206,7 @@ precision(tb) # Precision
 
 test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
 
+# LogitBoost
 gbmGrid <- expand.grid(nIter=c(16,96,102))
 trctrl <- trainControl(method = "repeatedcv"
                        , number = 10
@@ -208,10 +221,24 @@ logit_fit
 trellis.par.set(caretTheme())
 plot(logit_fit)
 
-pred <- predict(logit_fit, newdata = test
+lr_prob1 <- predict(logit_fit, newdata = test
                 , type = "prob"
                 )
 
+
+lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
+i<-1
+for (thresh in seq(0.25,0.75,0.05)){
+  lr_pred <- ifelse(lr_prob1 > thresh,1,0)
+  cm <- table(
+    as.factor(lr_pred),
+    as.factor(test$stroke)
+  )[2:1, 2:1]
+  lr_preds_test[i] <- F_meas(cm)
+  i<-i+1
+}
+names(lr_preds_test) <- seq(0.25,0.75,0.05)
+lr_preds_test
 #lr_prob1 <- predict(Logit, newdata = test, type="response")
 lr_pred <- as.factor(ifelse(pred[,2] > 0.49,"1","0"))
 
