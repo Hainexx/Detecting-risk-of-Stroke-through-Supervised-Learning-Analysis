@@ -33,7 +33,6 @@ plot(malldt.hc.ward)
 rect.hclust(malldt.hc.ward,k=3,border=c("red","green","blue")) 
 
 
-# standardizzazione del dataset per il calcolo della distanza euclidea utilizzata nel metodo basato sulle k-medie
 malldtstd<-scale(malldt[,-1])
 
 set.seed(123)
@@ -48,10 +47,10 @@ kmeans6<-kmeans(malldt[,-1],6) # k=6 groups
 
 
 ris4<-eclust(malldt[,-1],"kmeans",k=4) # evaluation of the clustering composition
-fviz_silhouette(ris4) # dimensions and average of group's silhoutte
-sil4<-ris4$silinfo$widths # silhoutte measure of each observation
-neg_sil_index4<-which(sil4[,'sil_width']<0) # position of observation of silhoutte<0
-sil4[neg_sil_index4,] # observations with silhoutte<0, cluster of the obs and closest cluster
+fviz_silhouette(ris4) # dimensions and average of group's silhouette
+sil4<-ris4$silinfo$widths # silhouette measure of each observation
+neg_sil_index4<-which(sil4[,'sil_width']<0) # position of observation of silhouette<0
+sil4[neg_sil_index4,] # observations with silhouette<0, cluster of the obs and closest cluster
 
 ris6<-eclust(malldt[,-1],"kmeans",k=6)
 fviz_silhouette(ris6)
