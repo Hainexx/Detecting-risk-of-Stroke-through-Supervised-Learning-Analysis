@@ -1,0 +1,156 @@
+---
+title: "Stroke Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data
+
+For this work we used the dataset **Stroke Prediction Dataset** retrieved from [Kaggle](https://www.kaggle.com/fedesoriano/stroke-prediction-dataset). 
+
+We used the dataset to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relavant information about the patient.
+
+
+Below the information about the attributes:
+
+1. id: unique identifier
+2. gender: "Male", "Female" or "Other"
+3. age: age of the patient
+4. hypertension: 0 if the patient doesn't have hypertension, 1 if the patient has hypertension
+5. heart_disease: 0 if the patient doesn't have any heart diseases, 1 if the patient has a heart disease
+6. ever_married: "No" or "Yes"
+7. work_type: "children", "Govt_jov", "Never_worked", "Private" or "Self-employed"
+8. Residence_type: "Rural" or "Urban"
+9. avg_glucose_level: average glucose level in blood
+10. bmi: body mass index
+11. smoking_status: "formerly smoked", "never smoked", "smokes" or "Unknown"*
+12. stroke: 1 if the patient had a stroke or 0 if not
+
+*Note: "Unknown" in smoking_status means that the information is unavailable for this patient
+
+
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse) 
+library(Hmisc)
+library(DMwR2)
+library(gmodels)
+library(GoodmanKruskal)
+library(corrplot)
+library(pscl)
+library(caret)
+library(pROC)
+library(readr)
+
+set.seed(42)
+```
+
+<br>
+
+## Load the dataset
+Set the current directory as working directory.
+
+Load the dataset and convert the character in factor.
+
+```{r message=FALSE, warning=FALSE}
+#setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+
+stroke <- read_csv("stroke.csv", col_types = cols(hypertension = col_factor(levels = c("0","1")), 
+                                                  heart_disease = col_factor(levels = c("0","1")), 
+                                                  ever_married = col_factor(levels = c("Yes","No")),
+                                                  bmi = col_double(),
+                                                  stroke = col_factor(levels = c("0", "1")),
+                                                  Residence_type = col_factor(levels = c("Urban","Rural"))))
+
+head(stroke)
+```
+
+<br>
+
+## Data Manipulation
+
+```{r message=FALSE, warning=FALSE}
+stroke$id <- NULL
+stroke$smoking_status <- as.factor(stroke$smoking_status)
+
+stroke <- stroke[stroke$gender == "Male" | stroke$gender == "Female",]
+stroke$gender <- as.factor(stroke$gender)
+
+stroke <- stroke[!stroke$work_type == "Never_worked",]
+stroke$work_type <- as.factor(stroke$work_type)
+```
+
+<br>
+
+## Data Visualization
+
+First some boxplot to visualize stroke in association with some parameters.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(stroke, aes(x=as.factor(stroke),y=age))+
+  geom_boxplot(fill= "darkred", alpha= 0.7)
+
+ggplot(stroke, aes(x=as.factor(stroke),y=bmi))+
+  geom_boxplot(fill= "darkred", alpha= 0.7)
+
+ggplot(stroke, aes(x=as.factor(stroke),y=avg_glucose_level))+
+  geom_boxplot(fill= "darkred", alpha= 0.7)
+
+ggplot(stroke, aes(x=as.factor(stroke), y=age, fill="red")) + 
+  geom_boxplot() +
+  facet_wrap(~work_type, scale="free")
+```
+
+
+```{r message=FALSE, warning=FALSE}
+ggplot(stroke, aes(x=as.factor(stroke),y=hypertension))+
+  geom_jitter()+
+  theme_minimal()
+
+ggplot(stroke, aes(x=as.factor(stroke), y=work_type, fill="red")) + 
+  geom_jitter()
+
+ggplot(stroke, aes(x=as.factor(stroke), y=Residence_type, fill="red")) + 
+  geom_jitter()
+```
+
+<br>
+
+## Dealing with NA
+
+```{r}
+stroke <- as_tibble(stroke)
+sum(is.na(stroke$bmi))
+```
+
+This is the number of NA in the column **bmi**, that we substituted makng 
+a prediction.
+
+```{r warning=FALSE}
+missing_index <- which(is.na(stroke$bmi))
+X <- stroke[missing_index,]
+train_v <- stroke[-c(missing_index),]
+
+tree = caret::train(bmi ~ ., 
+                    data=train_v, 
+                    method="rpart", 
+                    trControl = trainControl(method = "cv"))
+
+bmi_pred <- predict(tree, newdata = X)
+
+stroke[missing_index,"bmi"] <- bmi_pred
+sum(is.na(stroke$bmi))
+sum(is.na(stroke))
+```
+
+
+
+
+
+
+
+
+
