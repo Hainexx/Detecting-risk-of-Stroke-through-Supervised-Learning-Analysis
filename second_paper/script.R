@@ -50,7 +50,7 @@ ris4<-eclust(malldt[,-1],"kmeans",k=4) # evaluation of the clustering compositio
 fviz_silhouette(ris4) # dimensions and average of group's silhouette
 sil4<-ris4$silinfo$widths # silhouette measure of each observation
 neg_sil_index4<-which(sil4[,'sil_width']<0) # position of observation of silhouette<0
-sil4[neg_sil_index4,] # observations with silhouette<0, cluster of the obs and closest cluster
+sil4[neg_sil_index4,] # observations with silhouette<0, that means that the observation should belong to the closest cluster
 
 ris6<-eclust(malldt[,-1],"kmeans",k=6)
 fviz_silhouette(ris6)
