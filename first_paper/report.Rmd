@@ -36,12 +36,26 @@ Below the information about the attributes:
 ```{r, include=FALSE, message=FALSE}
 library(ggplot2)        # Basic plots
 library(gridExtra)      # Multiple plot same figure
-#library(cvms)           # Confusion Matrix
+# library(cvms)           # Confusion Matrix
 library(dplyr)          # Play w/ dataframes
 library(broom)          # tidy()
 library(GoodmanKruskal) # nice Corr Matrix
 library(Hmisc)          # compute rcorr between quantitative vars
 library(corrplot)       # plot nice corr matrix
+library(performanceEstimation)
+
+library(tidyverse) 
+library(Hmisc)
+#library(DMwR) 
+library(gmodels)
+library(GoodmanKruskal)
+library(corrplot)
+library(pscl)
+library(caret)
+library(pROC)
+library(readr)
+library(GoodmanKruskal)
+library(corrplot)
 library(performanceEstimation)
 
 ###################################################################
@@ -64,9 +78,9 @@ dataset = read.csv("stroke.csv")
 str(dataset)
 ```
 
-## Data Manipulation
+## Data Preparation
 
-Convert the character in factor.
+We converted the categorical variables in factors.
 
 ```{r, warning=FALSE}
 dataset$id = NULL
@@ -82,11 +96,11 @@ dataset$smoking_status = factor(dataset$smoking_status)
 dataset$stroke = factor(dataset$stroke, levels = c(0,1), labels = c("No", "Yes"))
 dataset$bmi = as.numeric(dataset$bmi)
 
-dataset = na.omit(dataset)
 ```
 ```{r}
 str(dataset)
 ```
+
 
 \newpage
 
@@ -163,6 +177,63 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 #flattenCorrMatrix(corr$r, corr$P)
 ```
+## Data Manipulation
+
+In order to facilitate our work, we removed the level "other" from the variable 
+gender and the level "never_worked" from the variable work_type, since they are
+not relevant for the analysis.
+
+
+```{r}
+
+# rm gender "other"
+dataset$gender <- as.character(dataset$gender)
+stroke <- dataset[dataset$gender == "Male" | dataset$gender == "Female",]
+stroke$gender <- as.factor(stroke$gender)
+
+# rm "Never_worked"
+dataset$work_type <- as.character(dataset$work_type)
+stroke <- dataset[!dataset$work_type == "Never_worked",]
+stroke$work_type <- as.factor(stroke$work_type)
+
+
+```
+
+
+We removed the NA values from the **bmi** variable. In order to replace them, we predicted their
+values using a fitted tree.
+
+
+```{r}
+
+stroke <- as_tibble(stroke)
+sum(is.na(stroke$bmi))
+missing_index <- which(is.na(stroke$bmi))
+X <- stroke[missing_index,]
+train_v <- stroke[-c(missing_index),]
+
+tree = caret::train(bmi ~ ., 
+                    data=train_v, 
+                    method="rpart", 
+                    trControl = trainControl(method = "cv"))
+
+bmi_pred <- predict(tree, newdata = X)
+
+stroke[missing_index,"bmi"] <- bmi_pred
+sum(is.na(stroke$bmi))
+sum(is.na(stroke))
+
+# check for other NAs
+for (i in 1:11) {
+  print(which(is.na(stroke[,i])))
+}
+
+# clean Glob_Env
+rm(train_v,X,tree, bmi_pred,i,missing_index)
+```
+
+
+
 
 
 ```{r}
@@ -170,14 +241,14 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 # data Preprocessing, Econding with OneHotEncoding ------------------------------
 # 
-# dummy <- dummyVars(" ~ gender + work_type + smoking_status + ever_married + Residence_type", data=stroke)
-# newdata <- data.frame(predict(dummy, newdata = stroke))
-# a <- stroke[,2:4]
-# b <- stroke[,8:9]
-# dt <- cbind(a, b, newdata, stroke['stroke'])
-# dt <- as_tibble(dt)
+#dummy <- dummyVars(" ~ gender + work_type + smoking_status + ever_married + Residence_type", data=stroke)
+#newdata <- data.frame(predict(dummy, newdata = stroke))
+#a <- stroke[,2:4]
+#b <- stroke[,8:9]
+#dt <- cbind(a, b, newdata, stroke['stroke'])
+#dt <- as_tibble(dt)
 # 
-# y <- stroke['stroke']
+#y <- stroke['stroke']
 ```
  
 ```{r}
@@ -239,3 +310,11 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 ```{r}
  # TODO add models/predictions
 ```
+
+
+
+
+```{r}
+
+```
+
