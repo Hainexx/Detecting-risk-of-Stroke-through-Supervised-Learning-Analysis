@@ -126,7 +126,7 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 # 
 # y <- stroke['stroke']
 ```
-
+ 
 ```{r}
 # Fill missing bmi data w/ tree prediction
 # TODO keep this way? should we just remove them?
