@@ -8,6 +8,31 @@ output:
   pdf_document: default
   html_document: default
 ---
+## Data
+
+For this work we used the dataset **Stroke Prediction Dataset** retrieved from [Kaggle](https://www.kaggle.com/fedesoriano/stroke-prediction-dataset). 
+
+We used the dataset to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relavant information about the patient.
+
+
+Below the information about the attributes:
+
+1. id: unique identifier
+2. gender: "Male", "Female" or "Other"
+3. age: age of the patient
+4. hypertension: 0 if the patient doesn't have hypertension, 1 if the patient has hypertension
+5. heart_disease: 0 if the patient doesn't have any heart diseases, 1 if the patient has a heart disease
+6. ever_married: "No" or "Yes"
+7. work_type: "children", "Govt_jov", "Never_worked", "Private" or "Self-employed"
+8. Residence_type: "Rural" or "Urban"
+9. avg_glucose_level: average glucose level in blood
+10. bmi: body mass index
+11. smoking_status: "formerly smoked", "never smoked", "smokes" or "Unknown"*
+12. stroke: 1 if the patient had a stroke or 0 if not
+
+*Note: "Unknown" in smoking_status means that the information is unavailable for this patient
+
+
 ```{r, include=FALSE, message=FALSE}
 library(ggplot2)        # Basic plots
 library(gridExtra)      # Multiple plot same figure
@@ -17,25 +42,32 @@ library(broom)          # tidy()
 library(GoodmanKruskal) # nice Corr Matrix
 library(Hmisc)          # compute rcorr between quantitative vars
 library(corrplot)       # plot nice corr matrix
+library(performanceEstimation)
 
 ###################################################################
 # SMOTE stuff
 library(ROCR)
-install.packages("../libraries/DMwR_0.4.1.tar",repos=NULL, type="source")
-library(DMwR)
 ###################################################################
+```
 
-# Set current directory as WD
+<br>
+
+## Load the dataset
+Set the current directory as working directory and load the dataset.
+
+```{r}
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 source("../utils/plots.R")
 source("../utils/data_analysis.R")
-```
-
-```{r}
 dataset = read.csv("stroke.csv")
 str(dataset)
 ```
+
+## Data Manipulation
+
+Convert the character in factor.
+
 ```{r, warning=FALSE}
 dataset$id = NULL
 
@@ -56,6 +88,13 @@ dataset = na.omit(dataset)
 str(dataset)
 ```
 
+\newpage
+
+## Data Visualization
+
+Boxplots to visualize the stroke status in association with **age**, **bmi** and
+**glucose level**.
+
 ```{r, warning=FALSE, fig.width=10}
 grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
               geom_boxplot(fill= "#FDE725FF", alpha= 0.7), 
@@ -65,6 +104,17 @@ grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
               geom_boxplot(fill= "#440154FF", alpha= 0.7), 
             ncol=3)
 ```
+
+1. **Age** there is a relation with age: older people are more likely to have a 
+stroke
+2. **Bmi** there is no evident relation between stroke and bmi
+3. **Averagre glucose level** the higher the level of glucose, the higher the 
+relation with stroke
+
+<br>
+
+Then we built some matrices to show the relationship between stroke and some 
+**categorical variables** that have different levels.
 
 ```{r, warning=FALSE, fig.width=10, fig.height=7, fig.align='center'}
 source("../utils/plots.R")
@@ -76,7 +126,7 @@ grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,work_type))), pal
             factors_plot(tidy(table(dataset %>% select(stroke,smoking_status))), palette='Greens',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10),
-            factors_plot(tidy(table(dataset %>% select(stroke,smoking_status))), palette='Purples',
+            factors_plot(tidy(table(dataset %>% select(stroke,gender))), palette='Purples',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10),
             ncol=3, nrow=1)
@@ -90,8 +140,11 @@ grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,hypertension))), 
                          font_categories_size=10), 
             factors_plot(tidy(table(dataset %>% select(stroke,residence_type))), palette='Purples',
                          font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
-                         font_categories_size=10), 
-            ncol=3, nrow=1)
+                         font_categories_size=10),
+            factors_plot(tidy(table(dataset %>% select(stroke,ever_married))), palette='Oranges',
+                         font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
+                         font_categories_size=10),
+            ncol=2, nrow=2)
 ```
 ```{r, warning=FALSE, fig.align='center'}
 # qualitative corr
