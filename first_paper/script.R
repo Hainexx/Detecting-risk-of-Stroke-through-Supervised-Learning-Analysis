@@ -34,6 +34,7 @@ library(pROC)
 library(readr)
 library(GoodmanKruskal)
 library(corrplot)
+library(performanceEstimation)
 
 set.seed(42)
 
@@ -167,7 +168,7 @@ test <-  stroke[-split_train_test,]
 
 # Solve the under sampling problem with SMOTE algho to create synth new data -----------
 
-train <- SMOTE(stroke ~ ., train, perc.over = 2200, perc.under=100,k = 18)
+train <- smote(stroke ~ ., train, perc.over = 11, perc.under=2)
 
 # Now we have a balanced dataset
 length(which(train$stroke == "X1")) 
