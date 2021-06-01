@@ -1,7 +1,6 @@
 library(cluster)
 library(readr)
 library(corrplot) 
-
 library(factoextra)
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
@@ -11,7 +10,7 @@ malldt <- read_csv("Mall_Customers.csv")
 malldt$CustomerID <- NULL
 malldt$Gender <- as.factor(malldt$Gender)
 
-malldt.dist<-daisy(malldt,metric="euclidean",stand=TRUE)
+malldt.dist<-daisy(malldt,metric="gower") # Gower distance works for mixed variables
 
 malldt.hc.com<-hclust(malldt.dist,method="complete") 
 plot(malldt.hc.com) 
@@ -29,12 +28,25 @@ malldt.hc.cen<-hclust(malldt.dist,method="centroid")
 plot(malldt.hc.cen) 
 rect.hclust(malldt.hc.cen,k=3,border=c("red","green","blue")) 
 
-malldt.hc.ward<-hclust(malldt.dist,method="ward") 
+malldt.hc.ward<-hclust(malldt.dist,method="ward.D2") 
 plot(malldt.hc.ward) 
-rect.hclust(malldt.hc.ward,k=3,border=c("red","green","blue")) 
+rect.hclust(malldt.hc.ward,k=8,border=c("red","green","blue")) 
 
+malldt.groups.ward<-cutree(malldt.hc.ward,k=8) # allocate obs into 3 groups
+malldt.groups.ward
+table(malldt.groups.ward)
 
-malldtstd<-scale(malldt[,-1])
+clusterdata.mean<-function(data,groups){
+  aggregate(data,list(groups),function(x)mean(as.numeric(x)))
+}
+
+clusterdata.mean(malldt,malldt.groups.ward)
+
+### --- ### --- ### --- ### --- ###
+# K - Means algorithm
+# the categorial variable "gender" has to be removed from the code because the algorith only supports numerical variables.
+
+malldtstd<-scale(malldt[,-1]) 
 
 set.seed(123)
 k.max<-15 
