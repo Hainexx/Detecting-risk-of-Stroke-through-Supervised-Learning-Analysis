@@ -1,7 +1,6 @@
 library(cluster)
 library(readr)
 library(corrplot) 
-
 library(factoextra)
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
@@ -11,7 +10,7 @@ malldt <- read_csv("Mall_Customers.csv")
 malldt$CustomerID <- NULL
 malldt$Gender <- as.factor(malldt$Gender)
 
-malldt.dist<-daisy(malldt,metric="euclidean",stand=TRUE)
+malldt.dist<-daisy(malldt,metric="gower") # Gower distance works for mixed variables
 
 malldt.hc.com<-hclust(malldt.dist,method="complete") 
 plot(malldt.hc.com) 
@@ -29,12 +28,25 @@ malldt.hc.cen<-hclust(malldt.dist,method="centroid")
 plot(malldt.hc.cen) 
 rect.hclust(malldt.hc.cen,k=3,border=c("red","green","blue")) 
 
-malldt.hc.ward<-hclust(malldt.dist,method="ward") 
+malldt.hc.ward<-hclust(malldt.dist,method="ward.D2") 
 plot(malldt.hc.ward) 
-rect.hclust(malldt.hc.ward,k=3,border=c("red","green","blue")) 
+rect.hclust(malldt.hc.ward,k=8,border=c("red","green","blue")) 
 
+malldt.groups.ward<-cutree(malldt.hc.ward,k=8) # allocate obs into 3 groups
+malldt.groups.ward
+table(malldt.groups.ward)
 
-malldtstd<-scale(malldt[,-1])
+clusterdata.mean<-function(data,groups){
+  aggregate(data,list(groups),function(x)mean(as.numeric(x)))
+}
+
+clusterdata.mean(malldt,malldt.groups.ward)
+
+### --- ### --- ### --- ### --- ###
+# K - Means algorithm
+# the categorial variable "gender" has to be removed from the code because the algorith only supports numerical variables.
+
+malldtstd<-scale(malldt[,-1]) 
 
 set.seed(123)
 k.max<-15 
@@ -51,7 +63,7 @@ ris4<-eclust(malldt[,-1],"kmeans",k=4) # evaluation of the clustering compositio
 fviz_silhouette(ris4) # dimensions and average of group's silhouette
 sil4<-ris4$silinfo$widths # silhouette measure of each observation
 neg_sil_index4<-which(sil4[,'sil_width']<0) # position of observation of silhouette<0
-sil4[neg_sil_index4,] # observations with silhouette<0, cluster of the obs and closest cluster
+sil4[neg_sil_index4,] # observations with silhouette<0, that means that the observation should belong to the closest cluster
 
 ris6<-eclust(malldt[,-1],"kmeans",k=6)
 fviz_silhouette(ris6)
