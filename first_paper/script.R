@@ -36,6 +36,8 @@ library(GoodmanKruskal)
 library(corrplot)
 library(performanceEstimation)
 
+
+
 set.seed(42)
 
 # Set current directory as WD
@@ -71,8 +73,21 @@ ggplot(stroke, aes(x=as.factor(stroke),y=age))+
 ggplot(stroke, aes(x=as.factor(stroke),y=bmi))+
   geom_boxplot(fill= "darkred", alpha= 0.7)
 
+ggplot(data=stroke, aes(bmi)) + 
+  geom_histogram()
+
+out.bmi <- boxplot.stats(stroke$bmi)$out
+out_ind.bmi <- which(stroke$bmi %in% c(out.bmi))
+out_ind.bmi
+
 ggplot(stroke, aes(x=as.factor(stroke),y=avg_glucose_level))+
   geom_boxplot(fill= "darkred", alpha= 0.7)
+
+out.avg_glucose_level <- boxplot.stats(stroke$avg_glucose_level)$out
+out_ind.avg_glucose_level <- which(stroke$avg_glucose_level %in% c(out.avg_glucose_level))
+out_ind.avg_glucose_level
+
+intersect(out_ind.bmi,out_ind.avg_glucose_level)
 
 ggplot(stroke, aes(x=as.factor(stroke),y=hypertension))+
   geom_jitter()+
@@ -334,5 +349,7 @@ tb
 F_meas(tb) # F1 
 recall(tb)  # Recall 
 precision(tb) # Precision 
+
+
 
 

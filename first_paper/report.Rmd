@@ -8,34 +8,80 @@ output:
   pdf_document: default
   html_document: default
 ---
+## Data
+
+For this work we used the dataset **Stroke Prediction Dataset** retrieved from [Kaggle](https://www.kaggle.com/fedesoriano/stroke-prediction-dataset). 
+
+We used the dataset to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relavant information about the patient.
+
+
+Below the information about the attributes:
+
+1. id: unique identifier
+2. gender: "Male", "Female" or "Other"
+3. age: age of the patient
+4. hypertension: 0 if the patient doesn't have hypertension, 1 if the patient has hypertension
+5. heart_disease: 0 if the patient doesn't have any heart diseases, 1 if the patient has a heart disease
+6. ever_married: "No" or "Yes"
+7. work_type: "children", "Govt_jov", "Never_worked", "Private" or "Self-employed"
+8. Residence_type: "Rural" or "Urban"
+9. avg_glucose_level: average glucose level in blood
+10. bmi: body mass index
+11. smoking_status: "formerly smoked", "never smoked", "smokes" or "Unknown"*
+12. stroke: 1 if the patient had a stroke or 0 if not
+
+*Note: "Unknown" in smoking_status means that the information is unavailable for this patient
+
+
 ```{r, include=FALSE, message=FALSE}
 library(ggplot2)        # Basic plots
 library(gridExtra)      # Multiple plot same figure
-#library(cvms)           # Confusion Matrix
+# library(cvms)           # Confusion Matrix
 library(dplyr)          # Play w/ dataframes
 library(broom)          # tidy()
 library(GoodmanKruskal) # nice Corr Matrix
 library(Hmisc)          # compute rcorr between quantitative vars
 library(corrplot)       # plot nice corr matrix
+library(performanceEstimation)
+
+library(tidyverse) 
+library(Hmisc)
+#library(DMwR) 
+library(gmodels)
+library(GoodmanKruskal)
+library(corrplot)
+library(pscl)
+library(caret)
+library(pROC)
+library(readr)
+library(GoodmanKruskal)
+library(corrplot)
+library(performanceEstimation)
 
 ###################################################################
 # SMOTE stuff
 library(ROCR)
-install.packages("../libraries/DMwR_0.4.1.tar",repos=NULL, type="source")
-library(DMwR)
 ###################################################################
+```
 
-# Set current directory as WD
+<br>
+
+## Load the dataset
+Set the current directory as working directory and load the dataset.
+
+```{r}
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 source("../utils/plots.R")
 source("../utils/data_analysis.R")
-```
-
-```{r}
 dataset = read.csv("stroke.csv")
 str(dataset)
 ```
+
+## Data Preparation
+
+We converted the categorical variables in factors.
+
 ```{r, warning=FALSE}
 dataset$id = NULL
 
@@ -50,11 +96,18 @@ dataset$smoking_status = factor(dataset$smoking_status)
 dataset$stroke = factor(dataset$stroke, levels = c(0,1), labels = c("No", "Yes"))
 dataset$bmi = as.numeric(dataset$bmi)
 
-dataset = na.omit(dataset)
 ```
 ```{r}
 str(dataset)
 ```
+
+
+\newpage
+
+## Data Visualization
+
+Boxplots to visualize the stroke status in association with **age**, **bmi** and
+**glucose level**.
 
 ```{r, warning=FALSE, fig.width=10}
 grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
@@ -66,6 +119,17 @@ grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
             ncol=3)
 ```
 
+1. **Age** there is a relation with age: older people are more likely to have a 
+stroke
+2. **Bmi** there is no evident relation between stroke and bmi
+3. **Averagre glucose level** the higher the level of glucose, the higher the 
+relation with stroke
+
+<br>
+
+Then we built some matrices to show the relationship between stroke and some 
+**categorical variables** that have different levels.
+
 ```{r, warning=FALSE, fig.width=10, fig.height=7, fig.align='center'}
 source("../utils/plots.R")
 #,fig.height=12
@@ -76,7 +140,7 @@ grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,work_type))), pal
             factors_plot(tidy(table(dataset %>% select(stroke,smoking_status))), palette='Greens',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10),
-            factors_plot(tidy(table(dataset %>% select(stroke,smoking_status))), palette='Purples',
+            factors_plot(tidy(table(dataset %>% select(stroke,gender))), palette='Purples',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10),
             ncol=3, nrow=1)
@@ -90,8 +154,11 @@ grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,hypertension))), 
                          font_categories_size=10), 
             factors_plot(tidy(table(dataset %>% select(stroke,residence_type))), palette='Purples',
                          font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
-                         font_categories_size=10), 
-            ncol=3, nrow=1)
+                         font_categories_size=10),
+            factors_plot(tidy(table(dataset %>% select(stroke,ever_married))), palette='Oranges',
+                         font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
+                         font_categories_size=10),
+            ncol=2, nrow=2)
 ```
 ```{r, warning=FALSE, fig.align='center'}
 # qualitative corr
@@ -110,6 +177,63 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 #flattenCorrMatrix(corr$r, corr$P)
 ```
+## Data Manipulation
+
+In order to facilitate our work, we removed the level "other" from the variable 
+gender and the level "never_worked" from the variable work_type, since they are
+not relevant for the analysis.
+
+
+```{r}
+
+# rm gender "other"
+dataset$gender <- as.character(dataset$gender)
+stroke <- dataset[dataset$gender == "Male" | dataset$gender == "Female",]
+stroke$gender <- as.factor(stroke$gender)
+
+# rm "Never_worked"
+dataset$work_type <- as.character(dataset$work_type)
+stroke <- dataset[!dataset$work_type == "Never_worked",]
+stroke$work_type <- as.factor(stroke$work_type)
+
+
+```
+
+
+We removed the NA values from the **bmi** variable. In order to replace them, we predicted their
+values using a fitted tree.
+
+
+```{r}
+
+stroke <- as_tibble(stroke)
+sum(is.na(stroke$bmi))
+missing_index <- which(is.na(stroke$bmi))
+X <- stroke[missing_index,]
+train_v <- stroke[-c(missing_index),]
+
+tree = caret::train(bmi ~ ., 
+                    data=train_v, 
+                    method="rpart", 
+                    trControl = trainControl(method = "cv"))
+
+bmi_pred <- predict(tree, newdata = X)
+
+stroke[missing_index,"bmi"] <- bmi_pred
+sum(is.na(stroke$bmi))
+sum(is.na(stroke))
+
+# check for other NAs
+for (i in 1:11) {
+  print(which(is.na(stroke[,i])))
+}
+
+# clean Glob_Env
+rm(train_v,X,tree, bmi_pred,i,missing_index)
+```
+
+
+
 
 
 ```{r}
@@ -117,14 +241,14 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 # data Preprocessing, Econding with OneHotEncoding ------------------------------
 # 
-# dummy <- dummyVars(" ~ gender + work_type + smoking_status + ever_married + Residence_type", data=stroke)
-# newdata <- data.frame(predict(dummy, newdata = stroke))
-# a <- stroke[,2:4]
-# b <- stroke[,8:9]
-# dt <- cbind(a, b, newdata, stroke['stroke'])
-# dt <- as_tibble(dt)
+#dummy <- dummyVars(" ~ gender + work_type + smoking_status + ever_married + Residence_type", data=stroke)
+#newdata <- data.frame(predict(dummy, newdata = stroke))
+#a <- stroke[,2:4]
+#b <- stroke[,8:9]
+#dt <- cbind(a, b, newdata, stroke['stroke'])
+#dt <- as_tibble(dt)
 # 
-# y <- stroke['stroke']
+#y <- stroke['stroke']
 ```
  
 ```{r}
@@ -186,3 +310,11 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 ```{r}
  # TODO add models/predictions
 ```
+
+
+
+
+```{r}
+
+```
+
