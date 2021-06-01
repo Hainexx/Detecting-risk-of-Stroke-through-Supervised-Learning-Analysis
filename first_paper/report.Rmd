@@ -160,8 +160,11 @@ grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,hypertension))), 
                          font_categories_size=10),
             ncol=2, nrow=2)
 ```
+
+After we built some plots to show the **qualitative** and **quantitative** 
+correlation.
+
 ```{r, warning=FALSE, fig.align='center'}
-# qualitative corr
 qualitative_vars = c('gender', 'hypertension', 'heart_disease', 'ever_married',
                       'work_type', 'smoking_status', 'residence_type')
 plot(GKtauDataframe(dataset %>% select(all_of(qualitative_vars))))
@@ -177,10 +180,13 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 #flattenCorrMatrix(corr$r, corr$P)
 ```
+
+\newpage 
+
 ## Data Manipulation
 
-In order to facilitate our work, we removed the level "other" from the variable 
-gender and the level "never_worked" from the variable work_type, since they are
+In order to facilitate our work, we removed the level **other** from the variable 
+gender and the level **never_worked** from the variable work_type, since they are
 not relevant for the analysis.
 
 
@@ -200,11 +206,11 @@ stroke$work_type <- as.factor(stroke$work_type)
 ```
 
 
-We removed the NA values from the **bmi** variable. In order to replace them, we predicted their
-values using a fitted tree.
+We removed the NA values from the **bmi** variable. In order to replace them, 
+we predicted their values using a fitted tree.
 
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 
 stroke <- as_tibble(stroke)
 sum(is.na(stroke$bmi))
@@ -233,6 +239,38 @@ rm(train_v,X,tree, bmi_pred,i,missing_index)
 ```
 
 
+## Divide in training and test set
+```{r}
+set.seed(42)
+stroke <- as.data.frame(stroke)
+for (i in 1:11) {
+  levels(stroke[,i]) <- make.names(c(levels(stroke[,i])))
+}
+
+split_train_test <- createDataPartition(y = stroke$stroke, p=0.5, list = F)
+train <- stroke[split_train_test,]
+test <-  stroke[-split_train_test,]
+```
+
+## SMOTE algorithm
+
+Since our dataset has a problem of under sampling, we used the SMOTE algorithm 
+to create synthetic new data.
+
+```{r}
+# new smote algo
+```
+
+## Logistic Regression
+```{r}
+Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
+summary(Logit)
+```
+As we can see, the only significant variables are **age** and **hypertension**, 
+that have both an high positive impact on the increase of the logit probability.
+
+Also about the **smoking status** we can see, as expected, that it has a positive 
+impact and a negatie one when the individual has never smoked.
 
 
 
