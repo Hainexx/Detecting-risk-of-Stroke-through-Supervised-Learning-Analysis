@@ -34,7 +34,8 @@ library(pROC)
 library(readr)
 library(GoodmanKruskal)
 library(corrplot)
-library(performanceEstimation)
+remotes::install_github("dongyuanwu/RSBID")
+library(RSBID) #cmd above to install it
 
 
 
@@ -176,14 +177,14 @@ for (i in 1:11) {
   levels(stroke[,i]) <- make.names(c(levels(stroke[,i])))
 }
 
-split_train_test <- createDataPartition(y = stroke$stroke, p=0.5, list = F)
+split_train_test <- createDataPartition(y = stroke$stroke, p=0.6, list = F)
 train <- stroke[split_train_test,]
 test <-  stroke[-split_train_test,]
 
 
 # Solve the under sampling problem with SMOTE algho to create synth new data -----------
 
-train <- smote(stroke ~ ., train, perc.over = 11, perc.under=2)
+train <- SMOTE_NC(train, "stroke")
 
 # Now we have a balanced dataset
 length(which(train$stroke == "X1")) 
