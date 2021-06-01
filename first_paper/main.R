@@ -312,3 +312,60 @@ F_meas(tb) # F1
 recall(tb)  # Recall 
 precision(tb) # Precision 
 
+
+# COMPARISON WITH NON SMOTED TRAINNG SET
+
+for (i in 1:11) {
+  levels(train[,i]) <- make.names(c(levels(train[,i])))
+}
+
+for (i in 1:11) {
+  levels(test[,i]) <- make.names(c(levels(test[,i])))
+}
+
+control <- trainControl(method='cv', 
+                        number=3, 
+                        #repeats=5,
+                        search = "grid",
+                        #classProbs = T,
+                        #summaryFunction = twoClassSummary,
+                        allowParallel=T
+)
+
+# Metric compare model is Accuracy
+metric <- "Accuracy"
+
+#Number randomely variable selected is mtry
+sqrt(ncol(train))
+
+tunegrid <- expand.grid(.mtry=4)
+
+# The code below is the rf training but since it takes some minute, you do not actually
+# need to run it, just leave it commented out and load it.
+
+rf_2 <- caret::train(stroke~.,
+                   data=train,
+                   method='rf',
+                   #metric= metric,
+                   tuneLength = 3,
+                   tuneGrid=tunegrid,
+                   trControl=control
+)
+
+
+print(rf_2)
+plot(rf_2)
+model_rf <- predict(rf_2, newdata = test)
+
+
+tb <- table(Predicted = model_rf, Actual = test$stroke)[2:1, 2:1]
+tb
+
+
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
+F_meas(tb) # F1 
+recall(tb)  # Recall 
+precision(tb) # Precision 
+
+
+
