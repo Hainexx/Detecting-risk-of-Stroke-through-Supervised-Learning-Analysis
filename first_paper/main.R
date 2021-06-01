@@ -24,7 +24,6 @@
 
 library(tidyverse) 
 library(Hmisc)
-library(DMwR) 
 library(gmodels)
 library(GoodmanKruskal)
 library(corrplot)
@@ -36,12 +35,6 @@ library(GoodmanKruskal)
 library(corrplot)
 remotes::install_github("dongyuanwu/RSBID")
 library(RSBID) #cmd above to install it
-<<<<<<< HEAD:first_paper/main.R
-=======
-
-
->>>>>>> 162bbab769f8a487c3e370e6a46261affcb36a6e:first_paper/script.R
-
 
 
 set.seed(48)
@@ -159,138 +152,120 @@ flattenCorrMatrix <- function(cormat, pmat) {
 flattenCorrMatrix(corr$r, corr$P)
 corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
-# data Preprocessing, Econding with OneHotEncoding ------------------------------
-# 
-# dummy <- dummyVars(" ~ work_type + smoking_status", data=stroke)
-# newdata <- data.frame(predict(dummy, newdata = stroke))
-# a <- stroke[,1:5]
-# b <- stroke[,7:9]
-# dt <- cbind(a, b, newdata, stroke['stroke'])
-# dt[,9:16] <- lapply(dt[,9:16], as.factor)
-# dt <- as_tibble(dt)
-
-#rm(a,b,dummy, newdata,dt.gk,num,corr)
-
-
-
-
 
 # train & test --------------------------------------
 
-<<<<<<< HEAD:first_paper/main.R
 stroke <- as.data.frame(stroke)
 set.seed(36)
-split_train_test <- createDataPartition(y = stroke$stroke, p=0.4, list = F)
-=======
 split_train_test <- createDataPartition(y = stroke$stroke, p=0.6, list = F)
->>>>>>> 162bbab769f8a487c3e370e6a46261affcb36a6e:first_paper/script.R
 train <- stroke[split_train_test,]
 test <-  stroke[-split_train_test,]
 
 table(test$stroke)
+
 # Solve the under sampling problem with SMOTE algho to create synth new data -----------
 
-<<<<<<< HEAD:first_paper/main.R
+
 train_smoted <- SMOTE_NC(train, "stroke", k = 2)
-=======
-train <- SMOTE_NC(train, "stroke")
->>>>>>> 162bbab769f8a487c3e370e6a46261affcb36a6e:first_paper/script.R
+
 
 # Now we have a balanced dataset
 table(train_smoted$stroke)
 
 
-# # Regression ----------------------------------------
-# Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
-# summary(Logit)
-# 
-# lr_prob1 <- predict(Logit, newdata = test, type="response")
-# 
-# lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
-# i<-1
-# for (thresh in seq(0.25,0.75,0.05)){
-#   lr_pred <- ifelse(lr_prob1 > thresh,1,0)
-#   cm <- table(
-#     as.factor(lr_pred),
-#     as.factor(test$stroke)
-#   )[2:1, 2:1]
-#   lr_preds_test[i] <- F_meas(cm) # f1 score 
-#   i<-i+1
-# }
-# names(lr_preds_test) <- seq(0.25,0.75,0.05)
-# lr_preds_test
-# lr_pred <- as.numeric(ifelse(lr_prob1 > 0.65,"1","0"))
-# tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
-# tb
-# (tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
-# F_meas(tb) # F1 
-# recall(tb)  # Recall 
-# precision(tb) # Precision 
-# 
-# test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
-# 
-# # LogitBoost --------------------
-# for (i in 1:11) {
-#   levels(train[,i]) <- make.names(c(levels(train[,i])))
-# }
-# for (i in 1:11) {
-#   levels(test[,i]) <- make.names(c(levels(test[,i])))
-# }
-# 
-# #gbmGrid <- expand.grid(nIter=c(16,50,102))
-# trctrl <- trainControl(method = "repeatedcv"
-#                        , number = 3
-#                        , repeats = 10
-#                        #, savePredictions=F
-#                        , search = "random"
-#                        #, classProbs = T
-#                        #, summaryFunction = twoClassSummary
-#                        )
-# logit_fit <- train(stroke ~., data = train, method = "LogitBoost", trControl=trctrl
-#                    #tuneGrid=gbmGrid
-#                    )
-# logit_fit
-# plot(logit_fit)
-# 
-# pred <- predict(logit_fit, newdata = test, type = "prob")
-# 
-# 
-# levels(test$stroke) <- as.factor(c(0,1))
-# lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
-# i<-1
-# for (thresh in seq(0.25,0.75,0.05)){
-#   lr_pred <- ifelse(pred[2] > thresh,1,0)
-#   cm <- table(
-#     as.factor(lr_pred),
-#     as.factor(test$stroke)
-#   )[2:1, 2:1]
-#   lr_preds_test[i] <- F_meas(cm) # f1 score 
-#   i<-i+1
-# }
-# names(lr_preds_test) <- seq(0.25,0.75,0.05)
-# lr_preds_test
-# 
-# pred <- as.factor(ifelse(pred[2] > 0.5 ,1,0))
-# tb <- table(Predicted = pred, Actual = test$stroke)[2:1, 2:1]
-# tb
-# 
-# (tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
-# F_meas(tb) # F1 
-# recall(tb)  # Recall 
-# precision(tb) # Precision 
-# 
+# Regression ----------------------------------------
+Logit <- glm(stroke ~., data=as.data.frame(train), family = binomial(link = 'logit'))
+summary(Logit)
 
+lr_prob1 <- predict(Logit, newdata = test)
 
-# Explore possibilities with more "BlackBox" alghorithms 
+lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
+i<-1
+for (thresh in seq(0.25,0.75,0.05)){
+  lr_pred <- ifelse(lr_prob1 > thresh,1,0)
+  cm <- table(
+    as.factor(lr_pred),
+    as.factor(test$stroke)
+  )[2:1, 2:1]
+  lr_preds_test[i] <- F_meas(cm) # f1 score
+  i<-i+1
+}
+names(lr_preds_test) <- seq(0.25,0.75,0.05)
+lr_preds_test
+lr_pred <- as.numeric(ifelse(lr_prob1 > 0.65,"1","0"))
+tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
+tb
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
+F_meas(tb) # F1
+recall(tb)  # Recall
+precision(tb) # Precision
 
-# Random Forest -----------------------------
+test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+
+# LogitBoost --------------------
 for (i in 1:11) {
   levels(train_smoted[,i]) <- make.names(c(levels(train_smoted[,i])))
 }
 for (i in 1:11) {
   levels(test[,i]) <- make.names(c(levels(test[,i])))
 }
-#10 folds repeat 3 times
+
+gbmGrid <- expand.grid(nIter=c(16,34,102))
+trctrl <- trainControl(method = "cv"
+                       , number = 3
+                      # , repeats = 5
+                      # , search = "random"
+                       , classProbs = T
+                       , summaryFunction = twoClassSummary
+                       )
+logit_fit <- train(stroke ~., data = train_smoted, method = "LogitBoost", trControl=trctrl,
+                   tuneGrid=gbmGrid, 
+                   metric= "ROC"
+                   )
+logit_fit
+plot(logit_fit)
+
+pred <- round(predict(logit_fit, newdata = test, type = "prob"),3)
+
+
+levels(test$stroke) <- as.factor(c(0,1))
+lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
+i<-1
+for (thresh in seq(0.24,0.74,0.05)){
+  lr_pred <- ifelse(pred[2] > thresh,1,0)
+  cm <- table(
+    as.factor(lr_pred),
+    as.factor(test$stroke)
+  )[2:1, 2:1]
+  lr_preds_test[i] <- round(F_meas(cm),4) # f1 score
+  i<-i+1
+}
+names(lr_preds_test) <- seq(0.24,0.74,0.05)
+lr_preds_test
+
+pred <- as.factor(ifelse(pred[2] > 0.5 ,1,0))
+tb <- table(Predicted = pred, Actual = test$stroke)[2:1, 2:1]
+tb
+
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
+F_meas(tb) # F1
+recall(tb)  # Recall
+precision(tb) # Precision
+
+
+
+# Explore possibilities with more "BlackBox" alghorithms like Random Forest
+
+# Random Forest -----------------------------
+for (i in 1:11) {
+  levels(train_smoted[,i]) <- make.names(c(levels(train_smoted[,i])))
+}
+
+for (i in 1:11) {
+  levels(test[,i]) <- make.names(c(levels(test[,i])))
+}
+
+# 
 control <- trainControl(method='boot632', 
                         number=2, 
                         #repeats=3,
@@ -300,8 +275,7 @@ control <- trainControl(method='boot632',
                         allowParallel=T
                         )
 
-#Metric compare model is Accuracy
-#metric <- "ROC"
+# Metric compare model is Accuracy
 metric <- "Accuracy"
 
 #Number randomely variable selected is mtry
@@ -309,6 +283,9 @@ mtry <- sqrt(ncol(train))
 
 tunegrid <- expand.grid(.mtry=rnorm(3,mean=mtry,sd=1)
                         )
+
+# The code below is the rf training but since it takes some minute, you do not actually
+# need to run it, just leave it commented out and load it.
 
 # rf <- caret::train(stroke~.,
 #                     data=train_smoted,
@@ -318,12 +295,11 @@ tunegrid <- expand.grid(.mtry=rnorm(3,mean=mtry,sd=1)
 #                     trControl=control
 #                     )
 
-#saveRDS(rf, "rf_model.rds")
+# saveRDS(rf, "rf_model.rds")
 
 rf <- readRDS("rf_model.rds")
 
 print(rf)
-plot(rf)
 model_rf <- predict(rf, newdata = test)
 
 
@@ -335,7 +311,4 @@ tb
 F_meas(tb) # F1 
 recall(tb)  # Recall 
 precision(tb) # Precision 
-
-
-
 
