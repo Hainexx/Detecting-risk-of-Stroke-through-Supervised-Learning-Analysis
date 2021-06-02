@@ -1,113 +1,105 @@
 ---
-title: "first_lesson"
-author: "Matteo Biglioli"
-date: "5/24/2021"
+title: "Add Title"
+author: "Ordinary Leading Students"
+date: "6/02/2021"
 header-includes:
   - \usepackage{subfig}
+  - \usepackage{bbm}
 output:
   pdf_document: default
   html_document: default
+urlcolor: blue
 ---
-## Data
-
-For this work we used the dataset **Stroke Prediction Dataset** retrieved from [Kaggle](https://www.kaggle.com/fedesoriano/stroke-prediction-dataset). 
-
-We used the dataset to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relavant information about the patient.
-
-
-Below the information about the attributes:
-
-1. id: unique identifier
-2. gender: "Male", "Female" or "Other"
-3. age: age of the patient
-4. hypertension: 0 if the patient doesn't have hypertension, 1 if the patient has hypertension
-5. heart_disease: 0 if the patient doesn't have any heart diseases, 1 if the patient has a heart disease
-6. ever_married: "No" or "Yes"
-7. work_type: "children", "Govt_jov", "Never_worked", "Private" or "Self-employed"
-8. Residence_type: "Rural" or "Urban"
-9. avg_glucose_level: average glucose level in blood
-10. bmi: body mass index
-11. smoking_status: "formerly smoked", "never smoked", "smokes" or "Unknown"*
-12. stroke: 1 if the patient had a stroke or 0 if not
-
-*Note: "Unknown" in smoking_status means that the information is unavailable for this patient
-
 
 ```{r, include=FALSE, message=FALSE}
+
+# Load libraries
 library(ggplot2)        # Basic plots
 library(gridExtra)      # Multiple plot same figure
-# library(cvms)           # Confusion Matrix
 library(dplyr)          # Play w/ dataframes
 library(broom)          # tidy()
 library(GoodmanKruskal) # nice Corr Matrix
 library(Hmisc)          # compute rcorr between quantitative vars
 library(corrplot)       # plot nice corr matrix
-library(performanceEstimation)
-
-library(tidyverse) 
-library(Hmisc)
-#library(DMwR) 
-library(gmodels)
-library(GoodmanKruskal)
-library(corrplot)
-library(pscl)
-library(caret)
-library(pROC)
-library(readr)
-library(GoodmanKruskal)
-library(corrplot)
-library(performanceEstimation)
+library(caret)          # trainControl (train tree predictor)
+#library(performanceEstimation)
 
 ###################################################################
 # SMOTE stuff
 library(ROCR)
 ###################################################################
-```
 
-<br>
-
-## Load the dataset
-Set the current directory as working directory and load the dataset.
-
-```{r}
+# Set the current directory as working directory and load custom functions.
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
-
 source("../utils/plots.R")
 source("../utils/data_analysis.R")
+```
+
+
+\begin{abstract}
+In the following paper we will present a statistical analysis of stroke related data. Our goal will be to predict whether a patient is likely to get stroke based on multiple input parameters like gender, age, various diseases, and smoking status.
+**Add info**
+\end{abstract}
+
+\section{Data}
+
+We will now load and present our dataset (that can be retrieved at the following [link](https://www.kaggle.com/fedesoriano/stroke-prediction-dataset)). \
+
+\begin{enumerate}
+\item id: unique identifier
+\item gender: [Male, Female, Other]
+\item age: age of the patient
+\item hypertension = $\begin{cases} 1 \quad \text{if the patient has hypertension}\\  0 \quad \text{otherwise} \end{cases}$
+\item heart\_disease = $\begin{cases} 1 \quad \text{if the patient has a heart disease}\\  0 \quad \text{otherwise} \end{cases}$
+\item ever\_married = [Yes, No]
+\item work\_type = [children, Govt\_jov, Never\_worked, Private, Self-employed]
+\item Residence\_type = [Rural, Urban]
+\item avg\_glucose\_level: average glucose level in blood
+\item bmi: body mass index
+\item smoking\_status = [formerly smoked, never smoked, smokes, Unknown\footnote{The information is unavailable for this patient}]
+\item stroke = $\begin{cases} 1 \quad \text{if the patient had a stroke}\\  0 \quad \text{otherwise} \end{cases}$
+\end{enumerate}\
+
+```{r}
+# Load and summarize dataset
 dataset = read.csv("stroke.csv")
 str(dataset)
 ```
 
-## Data Preparation
 
-We converted the categorical variables in factors.
+\section{Data Cleaning}
+
+We convert our variables in the right data type and we show the updated summary.\
 
 ```{r, warning=FALSE}
+# Remove id column (useless)
 dataset$id = NULL
 
-dataset$gender = factor(dataset$gender)
-dataset$hypertension = factor(dataset$hypertension, levels = c(0,1), labels = c("No", "Yes"))
-dataset$heart_disease = factor(dataset$heart_disease, levels = c(0,1), labels = c("No", "Yes"))
-dataset$ever_married = factor(dataset$ever_married)
-dataset$work_type = factor(dataset$work_type)
-dataset$residence_type = factor(dataset$Residence_type)
-dataset$Residence_type = NULL
-dataset$smoking_status = factor(dataset$smoking_status)
-dataset$stroke = factor(dataset$stroke, levels = c(0,1), labels = c("No", "Yes"))
-dataset$bmi = as.numeric(dataset$bmi)
+# Convert qualitative variables in factors
+dataset$gender          = factor(dataset$gender)
+dataset$hypertension    = factor(dataset$hypertension, levels = c(0,1), labels = c("No", "Yes"))
+dataset$heart_disease   = factor(dataset$heart_disease, levels = c(0,1), labels = c("No", "Yes"))
+dataset$ever_married    = factor(dataset$ever_married)
+dataset$work_type       = factor(dataset$work_type)
+dataset$residence_type  = factor(dataset$Residence_type)
+dataset$smoking_status  = factor(dataset$smoking_status)
+dataset$stroke          = factor(dataset$stroke, levels = c(0,1), labels = c("No", "Yes"))
 
-```
-```{r}
+# Convert quantitative variable in numeric
+dataset$bmi             = as.numeric(dataset$bmi)
+
+# Remove duplicate column (due to uppercase)
+dataset$Residence_type  = NULL 
+
+# Show dataset summary
 str(dataset)
+
 ```
-
-
 \newpage
 
-## Data Visualization
+\section{ Data Visualization}
 
-Boxplots to visualize the stroke status in association with **age**, **bmi** and
-**glucose level**.
+We can use different boxplots to visualize possible relations between our quantitative variables (**age**, **bmi** and **Average glucose level**) and stroke status.\
 
 ```{r, warning=FALSE, fig.width=10}
 grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
@@ -119,21 +111,16 @@ grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
             ncol=3)
 ```
 
-1. **Age** there is a relation with age: older people are more likely to have a 
-stroke
-2. **Bmi** there is no evident relation between stroke and bmi
-3. **Averagre glucose level** the higher the level of glucose, the higher the 
-relation with stroke
+From the plots above we can infer the following:
+\begin{itemize}
+\item **Age**: older people are more likely to have a stroke.
+\item **Bmi**:there is no evident relation between stroke and bmi.
+\item **Average glucose level**: the higher the level of glucose, the higher the relation with stroke
+\end{itemize}
 
-<br>
-
-Then we built some matrices to show the relationship between stroke and some 
-**categorical variables** that have different levels.
+Below we plot a few matrices to visualize possible relations between our qualitative variables and stroke status.\
 
 ```{r, warning=FALSE, fig.width=10, fig.height=7, fig.align='center'}
-source("../utils/plots.R")
-#,fig.height=12
-
 grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,work_type))), palette='Blues',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10), 
@@ -147,22 +134,21 @@ grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,work_type))), pal
 ```
 ```{r, warning=FALSE, fig.width=10, fig.height=5, fig.align='center'}
 grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,hypertension))), palette='Greens',
-                         font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
+                         font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10), 
             factors_plot(tidy(table(dataset %>% select(stroke,heart_disease))), palette='Blues',
-                         font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
+                         font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10), 
             factors_plot(tidy(table(dataset %>% select(stroke,residence_type))), palette='Purples',
-                         font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
+                         font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10),
             factors_plot(tidy(table(dataset %>% select(stroke,ever_married))), palette='Oranges',
-                         font_count_size=4.5, font_normalized_size=6, font_percentages_size=3.5,
+                         font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10),
             ncol=2, nrow=2)
 ```
 
-After we built some plots to show the **qualitative** and **quantitative** 
-correlation.
+And we can finally show **qualitative** and **quantitative** correlations. \\
 
 ```{r, warning=FALSE, fig.align='center'}
 qualitative_vars = c('gender', 'hypertension', 'heart_disease', 'ever_married',
@@ -177,91 +163,84 @@ quantitative_vars = c('age', 'avg_glucose_level', 'bmi')
 corr <- rcorr(as.matrix(dataset %>% select(all_of(quantitative_vars))))
 
 corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
+``` 
 
-#flattenCorrMatrix(corr$r, corr$P)
-```
+\section{Data Manipulation}
 
-\newpage 
-
-## Data Manipulation
-
-In order to facilitate our work, we removed the level **other** from the variable 
-gender and the level **never_worked** from the variable work_type, since they are
-not relevant for the analysis.
-
+In order to facilitate our work, we removed the level **other** from the variable gender and the level **never_worked** from the variable work_type, since they are not relevant for the analysis.\
 
 ```{r}
+# Remove rows
+dataset = dataset %>%
+          filter(gender != 'Other') %>%
+          filter(work_type != 'Never_worked')
 
-# rm gender "other"
-dataset$gender <- as.character(dataset$gender)
-stroke <- dataset[dataset$gender == "Male" | dataset$gender == "Female",]
-stroke$gender <- as.factor(stroke$gender)
-
-# rm "Never_worked"
-dataset$work_type <- as.character(dataset$work_type)
-stroke <- dataset[!dataset$work_type == "Never_worked",]
-stroke$work_type <- as.factor(stroke$work_type)
-
-
+# Remove related levels
+dataset = droplevels(dataset)
 ```
 
+We now have to address NA values:
+```{r}
+# Check for NA in all columns
+for (col_name in colnames(dataset)){
+   if (anyNA(dataset[[col_name]]))
+    print(paste(col_name, '-> ', sum(is.na(dataset[[col_name]])), ' NA'))
+}
+```
 
-We removed the NA values from the **bmi** variable. In order to replace them, 
-we predicted their values using a fitted tree.
-
+We notice that we have 201 NA just in the **bmi** variable. In order to avoid losing these rows, given that we already have a small dataset, we will predict their values using a fitted tree.\
 
 ```{r, warning=FALSE, message=FALSE}
 
-stroke <- as_tibble(stroke)
-sum(is.na(stroke$bmi))
-missing_index <- which(is.na(stroke$bmi))
-X <- stroke[missing_index,]
-train_v <- stroke[-c(missing_index),]
+# Define test set as set with missing data
+missing_index <- which(is.na(dataset$bmi))
 
+test_set <- dataset[missing_index,]
+train_set <- dataset[-c(missing_index),]
+
+# Fit the tree
 tree = caret::train(bmi ~ ., 
-                    data=train_v, 
+                    data=train_set, 
                     method="rpart", 
                     trControl = trainControl(method = "cv"))
 
-bmi_pred <- predict(tree, newdata = X)
+# Replace missing data with predicted data
+bmi_pred <- predict(tree, newdata = test_set)
+dataset[missing_index, 'bmi'] <- bmi_pred
 
-stroke[missing_index,"bmi"] <- bmi_pred
-sum(is.na(stroke$bmi))
-sum(is.na(stroke))
-
-# check for other NAs
-for (i in 1:11) {
-  print(which(is.na(stroke[,i])))
-}
-
-# clean Glob_Env
-rm(train_v,X,tree, bmi_pred,i,missing_index)
+# clean global environment
+rm(test_set, train_set, tree, bmi_pred, missing_index)
 ```
 
 
-## Divide in training and test set
+\section{Statistical Model}
+
+We will now begin splitting our dataset in train/test.\
+
 ```{r}
-set.seed(42)
-stroke <- as.data.frame(stroke)
-for (i in 1:11) {
-  levels(stroke[,i]) <- make.names(c(levels(stroke[,i])))
+# Set a fixed seed in order to have reproducible results
+set.seed(42) # Answer to the Ultimate Question of Life, the Universe, and Everything
+
+# What?
+for (col_name in colnames(dataset)){
+  levels(dataset[[col_name]]) = make.names(c(levels(dataset[[col_name]])))
 }
 
-split_train_test <- createDataPartition(y = stroke$stroke, p=0.5, list = F)
-train <- stroke[split_train_test,]
-test <-  stroke[-split_train_test,]
+# 50-50 split
+split_train_test <- createDataPartition(y = dataset$stroke, p=0.5, list = F)
+train <- dataset[split_train_test,]
+test <-  dataset[-split_train_test,]
 ```
 
-## SMOTE algorithm
+\subsection{SMOTE algorithm}
 
-Since our dataset has a problem of under sampling, we used the SMOTE algorithm 
-to create synthetic new data.
-
+Since our dataset has a problem of under sampling, we will use the SMOTE algorithm to create synthetic new data.
+**ADD SMOTE EXPLANATION**\
 ```{r}
 # new smote algo
 ```
 
-## Logistic Regression
+\subsection{Logistic Regression}
 ```{r}
 Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
 summary(Logit)
@@ -271,88 +250,4 @@ that have both an high positive impact on the increase of the logit probability.
 
 Also about the **smoking status** we can see, as expected, that it has a positive 
 impact and a negatie one when the individual has never smoked.
-
-
-
-```{r}
-# TODO clean code and stuff
-
-# data Preprocessing, Econding with OneHotEncoding ------------------------------
-# 
-#dummy <- dummyVars(" ~ gender + work_type + smoking_status + ever_married + Residence_type", data=stroke)
-#newdata <- data.frame(predict(dummy, newdata = stroke))
-#a <- stroke[,2:4]
-#b <- stroke[,8:9]
-#dt <- cbind(a, b, newdata, stroke['stroke'])
-#dt <- as_tibble(dt)
-# 
-#y <- stroke['stroke']
-```
- 
-```{r}
-# Fill missing bmi data w/ tree prediction
-# TODO keep this way? should we just remove them?
-# 
-# missing_index <-which(is.na(dataset$bmi))
-# 
-# train_set <- dataset[-c(missing_index),]
-# 
-# tree = caret::train(bmi ~ ., 
-#                     data=train_set, 
-#                     method="rpart", 
-#                     trControl = trainControl(method = "cv"))
-# predicted_bmi <- predict(tree, newdata = dataset[missing_index,])
-# 
-# #######################
-# # What? Why?
-# # x <- mean(bmi_pred)
-# # bmi_pred[202] <- x
-# #######################
-# 
-# dataset[missing_index,"bmi"] <- predicted_bmi
-# 
-# dataset = na.omit(dataset)
-# 
-# # Check quantitative correlation is under control w/ new data
-# TODO side by side :)
-# 
-# new_corr <- rcorr(as.matrix(dataset %>% select(all_of(quantitative_vars))))
-# flattenCorrMatrix(new_corr$r, new_corr$P)
-# 
-# grid.arrange(corrplot(corr$r,    type = "upper", tl.col = "black", tl.srt = 45), 
-#             corrplot(new_corr$r, type = "upper", tl.col = "black", tl.srt = 45), 
-#             ncol=2, nrow=1)
-
-```
-```{r}
-# Solve the under sampling problem with SMOTE algho to create synth new data 
-
-# dataset <- as.data.frame(lapply(dataset, as.factor)) # What? Why? 
-# 
-# trainSplit <- DMwR::SMOTE(stroke ~ ., dt, perc.over = 2000, perc.under=10)
-# 
-# dt_synth<- rbind(trainSplit,dt)
-# 
-# 
-# dt_synth$work_type.Never_worked <- NULL # Again, but why :D
-# 
-# dt_synth$avg_glucose_level <- as.numeric(dt_synth$avg_glucose_level)
-# dt_synth$bmi <- as.numeric(dt_synth$bmi)
-# dt_synth$age <- as.numeric(dt_synth$age)
-
-# TODO Show some stats of new dataset
-```
-```{r}
- # TODO recheck correlations, maybe w/ function to plot both side-by-side
-```
-```{r}
- # TODO add models/predictions
-```
-
-
-
-
-```{r}
-
-```
 
