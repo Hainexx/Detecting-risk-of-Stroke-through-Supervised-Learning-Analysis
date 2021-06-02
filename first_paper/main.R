@@ -340,8 +340,7 @@ sqrt(ncol(train))
 
 tunegrid <- expand.grid(.mtry=4)
 
-# The code below is the rf training but since it takes some minute, you do not actually
-# need to run it, just leave it commented out and load it.
+# The code below wants to demonstrate that without the oversampling, the classification would be like REALLY bad.
 
 rf_2 <- caret::train(stroke~.,
                    data=train,
