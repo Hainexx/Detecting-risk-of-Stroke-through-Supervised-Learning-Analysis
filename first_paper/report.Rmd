@@ -27,6 +27,10 @@ library(caret)          # trainControl (train tree predictor)
 ###################################################################
 # SMOTE stuff
 library(ROCR)
+
+# New smote algo
+#remotes::install_github("dongyuanwu/RSBID")
+#library(RSBID) #cmd above to install it
 ###################################################################
 
 # Set the current directory as working directory and load custom functions.
@@ -239,7 +243,7 @@ table(test$stroke)
 Since our dataset has a problem of under sampling, we will use the SMOTE algorithm to create synthetic new data.
 **ADD SMOTE EXPLANATION**\
 ```{r}
-# new smote algo
+# New smote algo
 #train_smoted <- SMOTE_NC(train, "stroke", k = 2)
 
 # Now we have a balanced dataset
