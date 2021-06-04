@@ -27,6 +27,10 @@ library(caret)          # trainControl (train tree predictor)
 ###################################################################
 # SMOTE stuff
 library(ROCR)
+
+# New smote algo
+#remotes::install_github("dongyuanwu/RSBID")
+#library(RSBID) #cmd above to install it
 ###################################################################
 
 # Set the current directory as working directory and load custom functions.
@@ -113,9 +117,9 @@ grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
 
 From the plots above we can infer the following:
 \begin{itemize}
-\item **Age**: older people are more likely to have a stroke.
-\item **Bmi**:there is no evident relation between stroke and bmi.
-\item **Average glucose level**: the higher the level of glucose, the higher the relation with stroke
+\item **Age** : older people are more likely to have a stroke.
+\item **Bmi** :there is no evident relation between stroke and bmi.
+\item **Average glucose level** : the higher the level of glucose, the higher the relation with stroke
 \end{itemize}
 
 Below we plot a few matrices to visualize possible relations between our qualitative variables and stroke status.\
@@ -230,6 +234,8 @@ for (col_name in colnames(dataset)){
 split_train_test <- createDataPartition(y = dataset$stroke, p=0.5, list = F)
 train <- dataset[split_train_test,]
 test <-  dataset[-split_train_test,]
+
+table(test$stroke)
 ```
 
 \subsection{SMOTE algorithm}
@@ -237,7 +243,11 @@ test <-  dataset[-split_train_test,]
 Since our dataset has a problem of under sampling, we will use the SMOTE algorithm to create synthetic new data.
 **ADD SMOTE EXPLANATION**\
 ```{r}
-# new smote algo
+# New smote algo
+#train_smoted <- SMOTE_NC(train, "stroke", k = 2)
+
+# Now we have a balanced dataset
+#table(train_smoted$stroke)
 ```
 
 \subsection{Logistic Regression}
@@ -250,4 +260,49 @@ that have both an high positive impact on the increase of the logit probability.
 
 Also about the **smoking status** we can see, as expected, that it has a positive 
 impact and a negatie one when the individual has never smoked.
+
+\subsection{Confusion Matrix and Statistics}
+```{r}
+lr_prob1 <- predict(Logit, newdata = test)
+
+# error with the for loop
+
+#lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
+#i<-1
+#for (thresh in seq(0.25,0.75,0.05)){
+#  lr_pred <- ifelse(lr_prob1 > thresh,1,0)
+#  cm <- table(
+#    as.factor(lr_pred),
+#    as.factor(test$stroke)
+#  )[2:1, 2:1]
+#  lr_preds_test[i] <- F_meas(cm) # f1 score
+#  i<-i+1
+#}
+#names(lr_preds_test) <- seq(0.25,0.75,0.05)
+#lr_preds_test
+lr_pred <- as.numeric(ifelse(lr_prob1 > 0.65,"1","0"))
+tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
+tb
+
+#salini conf matrix
+# error when knitting
+
+#lr_pred1 <- ifelse(lr_prob1 > 0.65,"1","0")
+
+#confusionMatrix(
+#as.factor(lr_pred1),
+#  as.factor(test$stroke),
+#  positive = "0" 
+#)
+```
+
+\subsection{ROC Curve}
+```{r}
+#error when knitting
+
+#test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+```
+
+
+
 
