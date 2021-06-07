@@ -2,12 +2,13 @@
 title: "Add Title"
 author: "Ordinary Leading Students"
 date: "6/02/2021"
-header-includes:
-  - \usepackage{subfig}
-  - \usepackage{bbm}
 output:
   pdf_document: default
   html_document: default
+  word_document: default
+header-includes:
+- \usepackage{subfig}
+- \usepackage{bbm}
 urlcolor: blue
 ---
 
@@ -22,16 +23,18 @@ library(GoodmanKruskal) # nice Corr Matrix
 library(Hmisc)          # compute rcorr between quantitative vars
 library(corrplot)       # plot nice corr matrix
 library(caret)          # trainControl (train tree predictor)
+library(pROC)
 #library(performanceEstimation)
 
-###################################################################
 # SMOTE stuff
 library(ROCR)
 
 # New smote algo
-#remotes::install_github("dongyuanwu/RSBID")
-#library(RSBID) #cmd above to install it
+remotes::install_github("dongyuanwu/RSBID")
+library(RSBID) #cmd above to install it
 ###################################################################
+
+set.seed(48)
 
 # Set the current directory as working directory and load custom functions.
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
@@ -42,6 +45,13 @@ source("../utils/data_analysis.R")
 
 \begin{abstract}
 In the following paper we will present a statistical analysis of stroke related data. Our goal will be to predict whether a patient is likely to get stroke based on multiple input parameters like gender, age, various diseases, and smoking status.
+Each row in the data provides relevant information about the patient.
+
+After some data cleaning, we plotted some interesting variables of our dataset to get some insight on
+the content and structure of our data.
+We then proceeded to the analysis. 
+
+
 **Add info**
 \end{abstract}
 
@@ -117,54 +127,54 @@ grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
 
 From the plots above we can infer the following:
 \begin{itemize}
-\item **Age** : older people are more likely to have a stroke.
-\item **Bmi** :there is no evident relation between stroke and bmi.
-\item **Average glucose level** : the higher the level of glucose, the higher the relation with stroke
+\item \textbf{Age}: older people are more likely to have a stroke.
+\item \textbf{Bmi}: there is no evident relation between stroke and bmi.
+\item \textbf{Average glucose level}: the higher the level of glucose, the higher the relation with stroke
 \end{itemize}
 
 Below we plot a few matrices to visualize possible relations between our qualitative variables and stroke status.\
 
 ```{r, warning=FALSE, fig.width=10, fig.height=7, fig.align='center'}
-grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,work_type))), palette='Blues',
+grid.arrange(factors_plot(tidy(table(dataset %>% dplyr::select(stroke,work_type))), palette='Blues',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10), 
-            factors_plot(tidy(table(dataset %>% select(stroke,smoking_status))), palette='Greens',
+            factors_plot(tidy(table(dataset %>% dplyr::select(stroke,smoking_status))), palette='Greens',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10),
-            factors_plot(tidy(table(dataset %>% select(stroke,gender))), palette='Purples',
+            factors_plot(tidy(table(dataset %>% dplyr::select(stroke,gender))), palette='Purples',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10),
             ncol=3, nrow=1)
 ```
 ```{r, warning=FALSE, fig.width=10, fig.height=5, fig.align='center'}
-grid.arrange(factors_plot(tidy(table(dataset %>% select(stroke,hypertension))), palette='Greens',
+grid.arrange(factors_plot(tidy(table(dataset %>% dplyr::select(stroke,hypertension))), palette='Greens',
                          font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10), 
-            factors_plot(tidy(table(dataset %>% select(stroke,heart_disease))), palette='Blues',
+            factors_plot(tidy(table(dataset %>% dplyr::select(stroke,heart_disease))), palette='Blues',
                          font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10), 
-            factors_plot(tidy(table(dataset %>% select(stroke,residence_type))), palette='Purples',
+            factors_plot(tidy(table(dataset %>% dplyr::select(stroke,residence_type))), palette='Purples',
                          font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10),
-            factors_plot(tidy(table(dataset %>% select(stroke,ever_married))), palette='Oranges',
+            factors_plot(tidy(table(dataset %>% dplyr::select(stroke,ever_married))), palette='Oranges',
                          font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10),
             ncol=2, nrow=2)
 ```
 
-And we can finally show **qualitative** and **quantitative** correlations. \\
+And we can finally show **qualitative** and **quantitative** correlations.
 
 ```{r, warning=FALSE, fig.align='center'}
 qualitative_vars = c('gender', 'hypertension', 'heart_disease', 'ever_married',
                       'work_type', 'smoking_status', 'residence_type')
-plot(GKtauDataframe(dataset %>% select(all_of(qualitative_vars))))
+plot(GKtauDataframe(dataset %>% dplyr::select(all_of(qualitative_vars))))
 ```
 ```{r, fig.height=6, fig.width=5, fig.align='center'}
 # TODO find a way to plot table and image side-by-side
 
 quantitative_vars = c('age', 'avg_glucose_level', 'bmi')
 
-corr <- rcorr(as.matrix(dataset %>% select(all_of(quantitative_vars))))
+corr <- rcorr(as.matrix(dataset %>% dplyr::select(all_of(quantitative_vars))))
 
 corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 ``` 
@@ -184,6 +194,7 @@ dataset = droplevels(dataset)
 ```
 
 We now have to address NA values:
+
 ```{r}
 # Check for NA in all columns
 for (col_name in colnames(dataset)){
@@ -223,15 +234,10 @@ We will now begin splitting our dataset in train/test.\
 
 ```{r}
 # Set a fixed seed in order to have reproducible results
-set.seed(42) # Answer to the Ultimate Question of Life, the Universe, and Everything
+set.seed(36) # Answer to the Ultimate Question of Life, the Universe, and Everything
 
-# What?
-for (col_name in colnames(dataset)){
-  levels(dataset[[col_name]]) = make.names(c(levels(dataset[[col_name]])))
-}
-
-# 50-50 split
-split_train_test <- createDataPartition(y = dataset$stroke, p=0.5, list = F)
+# 60-40 split
+split_train_test <- createDataPartition(y = dataset$stroke, p=0.6, list = F)
 train <- dataset[split_train_test,]
 test <-  dataset[-split_train_test,]
 
@@ -244,45 +250,49 @@ Since our dataset has a problem of under sampling, we will use the SMOTE algorit
 **ADD SMOTE EXPLANATION**\
 ```{r}
 # New smote algo
-#train_smoted <- SMOTE_NC(train, "stroke", k = 2)
+train_smoted <- SMOTE_NC(train, "stroke", k = 2)
 
 # Now we have a balanced dataset
-#table(train_smoted$stroke)
+table(train_smoted$stroke)
 ```
 
 \subsection{Logistic Regression}
+
+We perform a logistic regression using \item \textbf{stroke} as the dependent variable and the rest of the data as independent variables in order to see if we find some significant relationships.
+
 ```{r}
 Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
 summary(Logit)
 ```
-As we can see, the only significant variables are **age** and **hypertension**, 
-that have both an high positive impact on the increase of the logit probability.
+The only significant variables are **age**,**hypertension** and **average glucose level**, 
+which have a positive impact on the increase of the logit probability.
 
-Also about the **smoking status** we can see, as expected, that it has a positive 
-impact and a negatie one when the individual has never smoked.
 
 \subsection{Confusion Matrix and Statistics}
+
 ```{r}
 lr_prob1 <- predict(Logit, newdata = test)
 
 # error with the for loop
 
-#lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
+#lr_preds_test <- c(0,0,0,0,0,0,0,0,0)
 #i<-1
-#for (thresh in seq(0.25,0.75,0.05)){
-#  lr_pred <- ifelse(lr_prob1 > thresh,1,0)
-#  cm <- table(
-#    as.factor(lr_pred),
-#    as.factor(test$stroke)
-#  )[2:1, 2:1]
-#  lr_preds_test[i] <- F_meas(cm) # f1 score
+# for (thresh in seq(0.25,0.35,0.05)){
+#   lr_pred <- ifelse(lr_prob1 > thresh,1,0)
+#   cm <- table(
+#     as.factor(lr_pred),
+#     as.factor(test$stroke)
+#   )[2:1, 2:1]
+#   lr_preds_test[i] <- F_meas(cm) # f1 score
 #  i<-i+1
-#}
-#names(lr_preds_test) <- seq(0.25,0.75,0.05)
-#lr_preds_test
-lr_pred <- as.numeric(ifelse(lr_prob1 > 0.65,"1","0"))
-tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
-tb
+# }
+# names(lr_preds_test) <- seq(0.25,0.35,0.05)
+#   
+# 
+# lr_preds_test
+# lr_pred <- as.numeric(ifelse(lr_prob1 > 0.3,"1","0"))
+# tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
+# tb
 
 #salini conf matrix
 # error when knitting
@@ -297,10 +307,11 @@ tb
 ```
 
 \subsection{ROC Curve}
+
 ```{r}
 #error when knitting
 
-#test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
 ```
 
 
