@@ -55,9 +55,15 @@ wss<-sapply(1:k.max,function(k){kmeans(malldtstd,k,nstart=50,iter.max=15)$tot.wi
 
 plot(1:k.max,wss,type="b",pch=19,xlab="Number of groups",ylab="Within Deviation",col="blue") 
 
+
+
 kmeans4<-kmeans(malldt[,-1],4) # k=4 groups
 kmeans6<-kmeans(malldt[,-1],6) # k=6 groups
 
+clusplot(malldtstd, kmeans4$cluster, 
+         main='2D representation of the Cluster solution',
+         color=TRUE, shade=TRUE,
+         labels=2, lines=0)
 
 ris4<-eclust(malldt[,-1],"kmeans",k=4) # evaluation of the clustering composition
 fviz_silhouette(ris4) # dimensions and average of group's silhouette
