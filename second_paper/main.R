@@ -42,11 +42,15 @@ clusterdata.mean<-function(data,groups){
 
 clusterdata.mean(malldt,malldt.groups.ward)
 
+
+
 ### --- ### --- ### --- ### --- ###
 # K - Means algorithm
 # the categorial variable "gender" has to be removed from the code because the algorith only supports numerical variables.
 
 malldtstd<-scale(malldt[,-1]) 
+
+heatmap(malldt)
 
 set.seed(123)
 k.max<-15 
@@ -54,8 +58,6 @@ k.max<-15
 wss<-sapply(1:k.max,function(k){kmeans(malldtstd,k,nstart=50,iter.max=15)$tot.withinss})
 
 plot(1:k.max,wss,type="b",pch=19,xlab="Number of groups",ylab="Within Deviation",col="blue") 
-
-
 
 kmeans4<-kmeans(malldt[,-1],4) # k=4 groups
 kmeans6<-kmeans(malldt[,-1],6) # k=6 groups
@@ -76,3 +78,4 @@ fviz_silhouette(ris6)
 sil6<-ris6$silinfo$widths 
 neg_sil_index6<-which(sil6[,'sil_width']<0)
 sil6[neg_sil_index6,]
+
