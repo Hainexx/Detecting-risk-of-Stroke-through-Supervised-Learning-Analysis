@@ -1,5 +1,5 @@
 ---
-title: "Add Title"
+title: "First Paper - Stroke Analysis"
 author: "Ordinary Leading Students"
 date: "6/02/2021"
 output:
@@ -26,20 +26,19 @@ library(caret)          # trainControl (train tree predictor)
 library(pROC)
 #library(performanceEstimation)
 
+###################################################################
 # SMOTE stuff
 library(ROCR)
 
-# New smote algo
 remotes::install_github("dongyuanwu/RSBID")
 library(RSBID) #cmd above to install it
 ###################################################################
-
-set.seed(48)
 
 # Set the current directory as working directory and load custom functions.
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 source("../utils/plots.R")
 source("../utils/data_analysis.R")
+
 ```
 
 
@@ -52,7 +51,6 @@ the content and structure of our data.
 We then proceeded to the analysis. 
 
 
-**Add info**
 \end{abstract}
 
 \section{Data}
@@ -72,7 +70,7 @@ We will now load and present our dataset (that can be retrieved at the following
 \item bmi: body mass index
 \item smoking\_status = [formerly smoked, never smoked, smokes, Unknown\footnote{The information is unavailable for this patient}]
 \item stroke = $\begin{cases} 1 \quad \text{if the patient had a stroke}\\  0 \quad \text{otherwise} \end{cases}$
-\end{enumerate}\
+\end{enumerate}
 
 ```{r}
 # Load and summarize dataset
@@ -234,7 +232,7 @@ We will now begin splitting our dataset in train/test.\
 
 ```{r}
 # Set a fixed seed in order to have reproducible results
-set.seed(36) # Answer to the Ultimate Question of Life, the Universe, and Everything
+set.seed(36)
 
 # 60-40 split
 split_train_test <- createDataPartition(y = dataset$stroke, p=0.6, list = F)
@@ -248,7 +246,7 @@ table(test$stroke)
 
 Since our dataset has a problem of under sampling, we will use the SMOTE algorithm to create synthetic new data.
 **ADD SMOTE EXPLANATION**\
-```{r}
+```{r, warning=FALSE, message=FALSE}
 # New smote algo
 train_smoted <- SMOTE_NC(train, "stroke", k = 2)
 
@@ -258,62 +256,83 @@ table(train_smoted$stroke)
 
 \subsection{Logistic Regression}
 
-We perform a logistic regression using \item \textbf{stroke} as the dependent variable and the rest of the data as independent variables in order to see if we find some significant relationships.
+We perform a logistic regression using  \textbf{stroke} as the dependent variable and the rest of the data as independent variables in order to see if we find some significant relationships.
 
 ```{r}
 Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
 summary(Logit)
 ```
-The only significant variables are **age**,**hypertension** and **average glucose level**, 
+The only significant variables are **age**, **hypertension** and **average glucose level**, 
 which have a positive impact on the increase of the logit probability.
 
 
 \subsection{Confusion Matrix and Statistics}
 
 ```{r}
-lr_prob1 <- predict(Logit, newdata = test)
+lr_prob1 <- predict(Logit, newdata = test, type = "response")
 
-# error with the for loop
+lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
 
-#lr_preds_test <- c(0,0,0,0,0,0,0,0,0)
-#i<-1
-# for (thresh in seq(0.25,0.35,0.05)){
-#   lr_pred <- ifelse(lr_prob1 > thresh,1,0)
-#   cm <- table(
-#     as.factor(lr_pred),
-#     as.factor(test$stroke)
-#   )[2:1, 2:1]
-#   lr_preds_test[i] <- F_meas(cm) # f1 score
-#  i<-i+1
-# }
-# names(lr_preds_test) <- seq(0.25,0.35,0.05)
-#   
-# 
-# lr_preds_test
-# lr_pred <- as.numeric(ifelse(lr_prob1 > 0.3,"1","0"))
-# tb <- table(Predicted = lr_pred, Actual = test$stroke)[2:1, 2:1]
-# tb
-
-#salini conf matrix
-# error when knitting
-
-#lr_pred1 <- ifelse(lr_prob1 > 0.65,"1","0")
-
-#confusionMatrix(
-#as.factor(lr_pred1),
-#  as.factor(test$stroke),
-#  positive = "0" 
-#)
+i<-1
+for (thresh in seq(0.25,0.75,0.05)){
+  lr_pred <- ifelse(lr_prob1 > thresh,1,0)
+  #cm <- matrix(1:4, nrow=2)
+  cm <- table(
+    Predicted = factor(lr_pred, levels = c(0,1)),
+    Actual = factor(test$stroke, levels = c(0,1))
+  )[2:1, 2:1]
+  lr_preds_test[i] <- F_meas(cm) # f1 score
+  i<-i+1
+}
+names(lr_preds_test) <- seq(0.25,0.75,0.05)
+lr_preds_test
+lr_pred <- as.numeric(ifelse(lr_prob1 > 0.75,"1","0"))
+tb <- table(
+        Predicted = factor(lr_pred, levels = c(0,1)),
+        Actual = factor(test$stroke, levels = c(0,1))
+      )[2:1, 2:1]
+tb
+(tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]) #Accuracy
+F_meas(tb) # F1
+recall(tb)  # Recall
+precision(tb) # Precision
 ```
 
 \subsection{ROC Curve}
 
-```{r}
-#error when knitting
-
+```{r, warning=FALSE, message=FALSE}
 test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
 ```
 
+\section{Boosting}
 
+```{r}
+for (i in 1:11) {
+  levels(train_smoted[,i]) <- make.names(c(levels(train_smoted[,i])))
+}
+for (i in 1:11) {
+  levels(test[,i]) <- make.names(c(levels(test[,i])))
+}
+
+# Tuning parameter grid
+gbmGrid <- expand.grid(nIter=c(16,34,102))
+
+
+trctrl <- trainControl(method = "cv"
+                       , number = 3
+                      # , repeats = 5
+                      # , search = "random"
+                       , classProbs = T
+                       , summaryFunction = twoClassSummary
+                       )
+logit_fit <- train(stroke ~., data = train_smoted, method = "LogitBoost", trControl=trctrl,
+                   tuneGrid=gbmGrid, 
+                   metric= "ROC"
+                   )
+logit_fit
+```
+```{r}
+plot(logit_fit)
+```
 
 
