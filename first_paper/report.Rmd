@@ -71,7 +71,7 @@ We will now load and present our dataset (that can be retrieved at the following
 \item smoking\_status = [formerly smoked, never smoked, smokes, Unknown\footnote{The information is unavailable for this patient}]
 \item stroke = $\begin{cases} 1 \quad \text{if the patient had a stroke}\\  0 \quad \text{otherwise} \end{cases}$
 \end{enumerate}
-
+\newpage
 ```{r}
 # Load and summarize dataset
 dataset = read.csv("stroke.csv")
@@ -107,11 +107,9 @@ dataset$Residence_type  = NULL
 str(dataset)
 
 ```
-\newpage
-
 \section{ Data Visualization}
 
-We can use different boxplots to visualize possible relations between our quantitative variables (**age**, **bmi** and **Average glucose level**) and stroke status.\
+We can use different boxplots to visualize possible relations between our quantitative variables (**age**, **bmi** and **average glucose level**) and stroke status.\
 
 ```{r, warning=FALSE, fig.width=10}
 grid.arrange(ggplot(dataset, aes(x=stroke ,y=age)) +
@@ -158,7 +156,27 @@ grid.arrange(factors_plot(tidy(table(dataset %>% dplyr::select(stroke,hypertensi
                          font_count_size=3.5, font_normalized_size=5, font_percentages_size=2.5,
                          font_categories_size=10),
             ncol=2, nrow=2)
+# \footnote{Further informations on this subject can be found at the following links: \begin{itemize}
+#                         \item [Work type](TODO)
+#                         \item [Smoking status](https://ourworldindata.org/smoking)
+#                         \item [Hypertension](https://www.medscape.com/answers/241381-7614/what-is-the-global-prevalence-of-hypertension-high-blood-pressure)
+#                         \item [Heart diseases](https://pubmed.ncbi.nlm.nih.gov/32742886/)
+#                        \end{itemize}}
 ```
+
+From these comparison matrices we can deduce the following:
+\begin{itemize}
+\item A lot of our subjects work in the private sector (57.24\%) and do not smoke (37\%), we can also notice a high predominance of subjects without hypertension (90.25\%) and heart diseases (94.6\%). These data should not worry us because they do not indicate unbalance in our dataset but just reflects the actual distributon of global population\footnote{Further informations on this subject can be found at the following links: \begin{itemize}
+                        \item \href{TODO}{Work type}
+                        \item \href{https://ourworldindata.org/smoking}{Smoking status}
+                        \item \href{https://www.medscape.com/answers/241381-7614/what-is-the-global-prevalence-of-hypertension-high-blood-pressure}{Hypertension}
+                        \item \href{https://pubmed.ncbi.nlm.nih.gov/32742886/}{Heart diseases}
+                       \end{itemize}}.
+\item We miss a lot of information on the smoking status of our partecipants (30.2\% unknown), this could evolve in a modellization problem if we do not address it properly.
+\item A lot of our subjects did not suffered a stroke (95.1\%), this could cause us some problem but we will address it using the SMOTE technique.
+\end{itemize}
+
+\newpage
 
 And we can finally show **qualitative** and **quantitative** correlations.
 
@@ -167,20 +185,20 @@ qualitative_vars = c('gender', 'hypertension', 'heart_disease', 'ever_married',
                       'work_type', 'smoking_status', 'residence_type')
 plot(GKtauDataframe(dataset %>% dplyr::select(all_of(qualitative_vars))))
 ```
-```{r, fig.height=6, fig.width=5, fig.align='center'}
-# TODO find a way to plot table and image side-by-side
+```{r, fig.height=4, fig.width=5, fig.align='center'}
 
 quantitative_vars = c('age', 'avg_glucose_level', 'bmi')
-
 corr <- rcorr(as.matrix(dataset %>% dplyr::select(all_of(quantitative_vars))))
-
 corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 ``` 
+
+From the results above we can notice that we don't have multicollinearity in our instrumental variables. The only two correlations that stand out are the one between work_type and ever_married and the one between age and bmi, as expected. \textbf{TODO explain better?}
 
 \section{Data Manipulation}
 
 In order to facilitate our work, we removed the level **other** from the variable gender and the level **never_worked** from the variable work_type, since they are not relevant for the analysis.\
 
+\textbf{SHOULD WE REMOVE UNKNNOWN SMOKING STATUS???}
 ```{r}
 # Remove rows
 dataset = dataset %>%
@@ -191,7 +209,9 @@ dataset = dataset %>%
 dataset = droplevels(dataset)
 ```
 
-We now have to address NA values:
+\subsection{NA Values}
+
+We now look for NA values in our dataset:
 
 ```{r}
 # Check for NA in all columns
@@ -239,20 +259,21 @@ split_train_test <- createDataPartition(y = dataset$stroke, p=0.6, list = F)
 train <- dataset[split_train_test,]
 test <-  dataset[-split_train_test,]
 
-table(test$stroke)
+print(table(train$stroke))
+print(table(test$stroke))
 ```
 
 \subsection{SMOTE algorithm}
 
-Since our dataset has a problem of under sampling, we will use the SMOTE algorithm to create synthetic new data.
-**ADD SMOTE EXPLANATION**\
+Since our dataset has a problem of under sampling, we will use the \href{https://arxiv.org/pdf/1106.1813.pdf}{SMOTE} algorithm to create synthetic new data.\
 ```{r, warning=FALSE, message=FALSE}
-# New smote algo
+# New smote algorithm
 train_smoted <- SMOTE_NC(train, "stroke", k = 2)
 
 # Now we have a balanced dataset
 table(train_smoted$stroke)
 ```
+Notice that the SMOTE algorithm was only applied to the train set, this is done on pourpose to avoid the evaluation of our final model on synthetic data.\
 
 \subsection{Logistic Regression}
 
@@ -264,11 +285,13 @@ summary(Logit)
 ```
 The only significant variables are **age**, **hypertension** and **average glucose level**, 
 which have a positive impact on the increase of the logit probability.
-
+**ADDRESS UNKNOWN SMOKING STATUS PROBLEM**
 
 \subsection{Confusion Matrix and Statistics}
 
+We will now evaluate our model over the test set.
 ```{r}
+# THIS? Big chuck of code for no results?
 lr_prob1 <- predict(Logit, newdata = test, type = "response")
 
 lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
@@ -297,22 +320,44 @@ F_meas(tb) # F1
 recall(tb)  # Recall
 precision(tb) # Precision
 ```
-
-\subsection{ROC Curve}
-
+```{r}
+library(caret)
+lr_prob1 <- predict(Logit, newdata = test, type = "response")
+lr_pred1 <- ifelse(lr_prob1 > 0.1,"Yes","No")
+confusionMatrix(
+  as.factor(lr_pred1),
+  as.factor(test$stroke),
+  positive = "Yes" 
+)
+```
 ```{r, warning=FALSE, message=FALSE}
 test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
 ```
+```{r, warning=FALSE, message=FALSE}
+print(test_roc$auc)
+```
+As we can see from the outputs above, our model does not perform very well. 
+With a threshold over 0.1 it predicts correctly just 62.6\% of the positive results (in our case, people who suffered a stroke), at the expense of 16\% of false positives.
+Because this is such a sensitive subject, we would definitely prefer having more false positives than false negatives, but lowering our threshold, say to 0.05, increase our sensitivity to 81.8\%, but it lowers the specificity to 71.7\% (from 83.7\%).
+
+The problem of this underperforming model could be addressed in two different ways:
+\begin{enumerate}
+\item We could speak with the stakeholders to understand how to best tune our threshold. In a real-world scenario this would translate into a discussion regarding the number of people we can take care of, even if they are false positives, in order to avoid rejecting people who actually need our help.
+\item We could try and increase the accuracy of our model, and we will do that below using a Boosting technique.
+\end{enumerate}
 
 \section{Boosting}
 
+Boosting is a technique used that convert weak learners to strong ones, and it works by iteratively learning weak classifiers with respect to a distribution and adding them to a final strong classifier.
+Notice that, when thery are added to the model, all the learners are weighted with relation to their prediction accuracy.
 ```{r}
-for (i in 1:11) {
-  levels(train_smoted[,i]) <- make.names(c(levels(train_smoted[,i])))
-}
-for (i in 1:11) {
-  levels(test[,i]) <- make.names(c(levels(test[,i])))
-}
+#WHY?
+# for (i in 1:11) {
+#   levels(train_smoted[,i]) <- make.names(c(levels(train_smoted[,i])))
+# }
+# for (i in 1:11) {
+#   levels(test[,i]) <- make.names(c(levels(test[,i])))
+# }
 
 # Tuning parameter grid
 gbmGrid <- expand.grid(nIter=c(16,34,102))
@@ -325,14 +370,16 @@ trctrl <- trainControl(method = "cv"
                        , classProbs = T
                        , summaryFunction = twoClassSummary
                        )
+
 logit_fit <- train(stroke ~., data = train_smoted, method = "LogitBoost", trControl=trctrl,
                    tuneGrid=gbmGrid, 
                    metric= "ROC"
                    )
 logit_fit
 ```
+We can notice in the output above that boosting our model slightly improves its accuracy (AUC from 85\% to 86.6\%) when 102 iterations are computed. 
 ```{r}
 plot(logit_fit)
 ```
-
-
+\section{Conclusion}
+\textbf{TODO}
