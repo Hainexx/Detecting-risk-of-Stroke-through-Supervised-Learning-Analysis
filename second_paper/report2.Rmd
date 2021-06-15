@@ -14,8 +14,8 @@ urlcolor: blue
 
 ```{r, include=FALSE, message=FALSE}
 # Loading libraries
-library(ggplot2)
-library(gridExtra)
+#library(ggplot2)
+#library(gridExtra)
 library(cluster)
 library(readr)
 library(corrplot) 
@@ -33,13 +33,18 @@ Mall dataset TO EXPLAIN
 We will now load and present our dataset (that can be retrieved at the following [link](https://www.kaggle.com/vjchoudhary7/customer-segmentation-tutorial-in-python)). 
 
 ```{r, message=FALSE}
+# Set the orking directory and load the dataset
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 malldt<- read_csv("Mall_Customers.csv")
+
+# Summary of the datset without the id column
 summary(malldt[-1])
 ```
 
 \section{Data Cleaning}
+
+We removed the **CustomerID** variable and converted the **Gender** one in factor.
 
 ```{r}
 malldt$CustomerID <- NULL
@@ -49,12 +54,17 @@ malldt$Gender <- as.factor(malldt$Gender)
 \section{Data Visualization}
 
 ```{r}
-# to fix, sorry ci ho provato
-grid.arrange(ggplot(malldt, aes(x=Gender, y="Annual Income (k$)")) +
-              geom_boxplot(fill= "#FDE725FF", alpha= 0.7), 
-             ggplot(malldt, aes(x=Gender, y="Spending Score (1-100)"))+
-              geom_boxplot(fill= "#2D708EFF", alpha= 0.7), 
-             ncol=2)
+# ggplot is not my friend
+#grid.arrange(ggplot(malldt, aes(x=Gender, y="Annual Income (k$)")) +
+#              geom_boxplot(fill= "#FDE725FF", alpha= 0.7), 
+#             ggplot(malldt, aes(x=Gender, y="Spending Score (1-100)"))+
+#              geom_boxplot(fill= "#2D708EFF", alpha= 0.7), 
+#             ncol=2)
+
+par(mfrow=c(1,2))
+boxplot(`Annual Income (k$)`~Gender,data=malldt, col="#2D708EFF")
+boxplot(`Spending Score (1-100)`~Gender,data=malldt, col="darkgoldenrod2")
+
 ```
 
 
