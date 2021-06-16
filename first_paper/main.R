@@ -177,6 +177,8 @@ table(train_smoted$stroke)
 Logit <- glm(stroke ~., data=as.data.frame(train), family = binomial(link = 'logit'))
 summary(Logit)
 
+vif(logit) #shows there is no multicollinearity in the data
+
 lr_prob1 <- predict(Logit, newdata = test)
 
 lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
@@ -365,6 +367,9 @@ tb
 F_meas(tb) # F1 
 recall(tb)  # Recall 
 precision(tb) # Precision 
+
+
+
 
 
 
