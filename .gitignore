@@ -8,3 +8,5 @@
  *.pdf
  *.html
  first_paper/nul 
+.DS_Store
+second_paper/.Rhistory
