@@ -178,13 +178,11 @@ table(train_smoted$stroke)
 Logit <- glm(stroke ~., data=as.data.frame(train), family = binomial(link = 'logit'))
 summary(Logit)
 
-<<<<<<< HEAD
 lr_prob1 <- predict(Logit, newdata = test, type = "response")
-=======
 vif(logit) #shows there is no multicollinearity in the data
 
 lr_prob1 <- predict(Logit, newdata = test)
->>>>>>> f04fe905973afd357574b7cebd10c995de843b1e
+
 
 lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
 i<-1
