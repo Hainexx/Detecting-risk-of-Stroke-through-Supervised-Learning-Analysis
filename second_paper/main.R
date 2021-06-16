@@ -12,6 +12,7 @@ malldt$Gender <- as.factor(malldt$Gender)
 
 malldt.dist<-daisy(malldt,metric="gower") # Gower distance works for mixed variables
 
+# types of dendograms
 malldt.hc.com<-hclust(malldt.dist,method="complete") 
 plot(malldt.hc.com) 
 rect.hclust(malldt.hc.com,k=3,border=c("red","green","blue")) 
@@ -50,9 +51,9 @@ clusterdata.mean(malldt,malldt.groups.ward)
 
 malldtstd<-scale(malldt[,-1]) 
 
-heatmap(malldt)
+heatmap(mallsdt)
 
-set.seed(123)
+set.seed(42)
 k.max<-15 
 
 wss<-sapply(1:k.max,function(k){kmeans(malldtstd,k,nstart=50,iter.max=15)$tot.withinss})
