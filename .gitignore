@@ -1,5 +1,15 @@
+<<<<<<< HEAD
 *.DS_Store
 *.RData
 *.Rhistory
 .RData
 .Rhistory
+=======
+.DS_Store
+.RData
+.Rhistory
+NTBL*
+*.pdf
+*.html
+first_paper/nul 
+>>>>>>> f04fe905973afd357574b7cebd10c995de843b1e

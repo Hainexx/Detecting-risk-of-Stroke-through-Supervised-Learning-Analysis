@@ -178,7 +178,13 @@ table(train_smoted$stroke)
 Logit <- glm(stroke ~., data=as.data.frame(train), family = binomial(link = 'logit'))
 summary(Logit)
 
+<<<<<<< HEAD
 lr_prob1 <- predict(Logit, newdata = test, type = "response")
+=======
+vif(logit) #shows there is no multicollinearity in the data
+
+lr_prob1 <- predict(Logit, newdata = test)
+>>>>>>> f04fe905973afd357574b7cebd10c995de843b1e
 
 lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
 i<-1
@@ -341,8 +347,7 @@ sqrt(ncol(train))
 
 tunegrid <- expand.grid(.mtry=4)
 
-# The code below is the rf training but since it takes some minute, you do not actually
-# need to run it, just leave it commented out and load it.
+# The code below wants to demonstrate that without the oversampling, the classification would be like REALLY bad.
 
 rf_2 <- caret::train(stroke~.,
                    data=train,
@@ -367,6 +372,9 @@ tb
 F_meas(tb) # F1 
 recall(tb)  # Recall 
 precision(tb) # Precision 
+
+
+
 
 
 

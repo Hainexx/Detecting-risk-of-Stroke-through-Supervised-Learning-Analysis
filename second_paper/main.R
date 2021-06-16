@@ -12,6 +12,7 @@ malldt$Gender <- as.factor(malldt$Gender)
 
 malldt.dist<-daisy(malldt,metric="gower") # Gower distance works for mixed variables
 
+# types of dendograms
 malldt.hc.com<-hclust(malldt.dist,method="complete") 
 plot(malldt.hc.com) 
 rect.hclust(malldt.hc.com,k=3,border=c("red","green","blue")) 
@@ -42,13 +43,17 @@ clusterdata.mean<-function(data,groups){
 
 clusterdata.mean(malldt,malldt.groups.ward)
 
+
+
 ### --- ### --- ### --- ### --- ###
 # K - Means algorithm
 # the categorial variable "gender" has to be removed from the code because the algorith only supports numerical variables.
 
 malldtstd<-scale(malldt[,-1]) 
 
-set.seed(123)
+heatmap(mallsdt)
+
+set.seed(42)
 k.max<-15 
 
 wss<-sapply(1:k.max,function(k){kmeans(malldtstd,k,nstart=50,iter.max=15)$tot.withinss})
@@ -58,6 +63,10 @@ plot(1:k.max,wss,type="b",pch=19,xlab="Number of groups",ylab="Within Deviation"
 kmeans4<-kmeans(malldt[,-1],4) # k=4 groups
 kmeans6<-kmeans(malldt[,-1],6) # k=6 groups
 
+clusplot(malldtstd, kmeans4$cluster, 
+         main='2D representation of the Cluster solution',
+         color=TRUE, shade=TRUE,
+         labels=2, lines=0)
 
 ris4<-eclust(malldt[,-1],"kmeans",k=4) # evaluation of the clustering composition
 fviz_silhouette(ris4) # dimensions and average of group's silhouette
@@ -70,3 +79,4 @@ fviz_silhouette(ris6)
 sil6<-ris6$silinfo$widths 
 neg_sil_index6<-which(sil6[,'sil_width']<0)
 sil6[neg_sil_index6,]
+

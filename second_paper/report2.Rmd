@@ -1,0 +1,202 @@
+---
+title: "Second Paper"
+author: "Ordinary Leading Students"
+date: "6/02/2021"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+header-includes:
+- \usepackage{subfig}
+- \usepackage{bbm}
+urlcolor: blue
+---
+
+```{r, include=FALSE, message=FALSE}
+# Loading libraries
+#library(ggplot2)
+#library(gridExtra)
+library(cluster)
+library(readr)
+library(corrplot) 
+library(factoextra)
+library(summarytools)
+```
+
+
+\begin{abstract}
+Mall dataset TO EXPLAIN
+
+\end{abstract}
+
+\section{Data}
+We will now load and present our dataset (that can be retrieved at the following [link](https://www.kaggle.com/vjchoudhary7/customer-segmentation-tutorial-in-python)). 
+
+```{r, message=FALSE}
+# Set the orking directory and load the dataset
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+
+malldt<- read_csv("Mall_Customers.csv")
+
+# Summary of the datset without the id column
+summary(malldt[-1])
+```
+
+\section{Data Cleaning}
+
+We removed the **CustomerID** variable and converted the **Gender** one in factor.
+
+```{r}
+malldt$CustomerID <- NULL
+malldt$Gender <- as.factor(malldt$Gender)
+```
+
+\section{Data Visualization}
+
+```{r}
+# ggplot is not my friend
+#grid.arrange(ggplot(malldt, aes(x=Gender, y="Annual Income (k$)")) +
+#              geom_boxplot(fill= "#FDE725FF", alpha= 0.7), 
+#             ggplot(malldt, aes(x=Gender, y="Spending Score (1-100)"))+
+#              geom_boxplot(fill= "#2D708EFF", alpha= 0.7), 
+#             ncol=2)
+
+par(mfrow=c(1,2))
+boxplot(`Annual Income (k$)`~Gender,data=malldt, col="#2D708EFF")
+boxplot(`Spending Score (1-100)`~Gender,data=malldt, col="darkgoldenrod2")
+
+```
+
+
+\section{Dendograms}
+
+```{r}
+# Gower distance works for mixed variables
+malldt.dist<-daisy(malldt,metric="gower")
+
+malldt.hc.com<-hclust(malldt.dist,method="complete") 
+plot(malldt.hc.com, main="Complete Method") 
+rect.hclust(malldt.hc.com,k=3,border=c("red","green","blue")) 
+
+malldt.hc.sin<-hclust(malldt.dist,method="single") 
+plot(malldt.hc.sin, main="Single Method") 
+rect.hclust(malldt.hc.sin,k=3,border=c("red","green","blue")) 
+
+malldt.hc.ave<-hclust(malldt.dist,method="average") 
+plot(malldt.hc.ave, main="Average Method") 
+rect.hclust(malldt.hc.ave,k=3,border=c("red","green","blue")) 
+
+malldt.hc.cen<-hclust(malldt.dist,method="centroid") 
+plot(malldt.hc.cen, main="Centroid Method") 
+rect.hclust(malldt.hc.cen,k=3,border=c("red","green","blue")) 
+
+malldt.hc.ward<-hclust(malldt.dist,method="ward.D2") 
+plot(malldt.hc.ward, main="Ward Method") 
+rect.hclust(malldt.hc.ward,k=8,border=c("red","green","blue"))  
+```
+
+\subsection{Ward Method}
+
+The **Ward Method** is clearly the best and from it we can see that there are 8 groups.
+
+```{r}
+# Allocate obs into 8 groups
+malldt.groups.ward<-cutree(malldt.hc.ward,k=8) 
+malldt.groups.ward
+
+# Number of observations in each group
+table(malldt.groups.ward)
+```
+
+
+Below a table that shows for each group the mean value of each variable. 
+
+```{r}
+clusterdata.mean<-function(data,groups){
+  aggregate(data,list(groups),function(x)mean(as.numeric(x)))
+}
+
+clusterdata.mean(malldt,malldt.groups.ward)
+```
+
+
+\section{K-Means algorithm}
+
+First we have to remove the categorial variable **gender** from the code because 
+the algorithm only supports numerical variables.
+
+```{r}
+malldtstd<-scale(malldt[,-1]) 
+```
+
+\subsection{Heatmap}
+
+```{r}
+#to adjust
+heatmap(malldtstd)
+```
+
+\subsection{Finding K}
+
+```{r}
+set.seed(42)
+k.max<-15 
+
+wss<-sapply(1:k.max,function(k){kmeans(malldtstd,k,nstart=50,iter.max=15)$tot.withinss})
+
+plot(1:k.max,wss,type="b",pch=19,xlab="Number of groups",ylab="Within Deviation",col="blue") 
+```
+
+Let's try with k=4 and k=6
+
+\subsection{K = 4}
+
+```{r}
+kmeans4<-kmeans(malldt[,-1],4) 
+
+clusplot(malldtstd, kmeans4$cluster, 
+         main='2D representation of the Cluster solution',
+         color=TRUE, shade=TRUE,
+         labels=2, lines=0)
+```
+
+```{r}
+ris4<-eclust(malldt[,-1],"kmeans",k=4) # evaluation of the clustering composition
+fviz_silhouette(ris4) # dimensions and average of group's silhouette
+sil4<-ris4$silinfo$widths # silhouette measure of each observation
+neg_sil_index4<-which(sil4[,'sil_width']<0) # position of observation of silhouette<0
+sil4[neg_sil_index4,] # observations with silhouette<0, that means that the observation should belong to the closest cluster
+
+```
+
+
+\subsection{K = 6}
+
+```{r}
+kmeans6<-kmeans(malldt[,-1],6)
+
+clusplot(malldtstd, kmeans6$cluster, 
+         main='2D representation of the Cluster solution',
+         color=TRUE, shade=TRUE,
+         labels=2, lines=0)
+
+ris6<-eclust(malldt[,-1],"kmeans",k=6)
+fviz_silhouette(ris6)
+sil6<-ris6$silinfo$widths 
+neg_sil_index6<-which(sil6[,'sil_width']<0)
+sil6[neg_sil_index6,]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
