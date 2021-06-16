@@ -308,7 +308,7 @@ Notice that the SMOTE algorithm was only applied to the train set, this is done 
 We perform a logistic regression using  \textbf{stroke} as the dependent variable and the rest of the data as independent variables in order to see if we find some significant relationships.
 
 ```{r}
-Logit <- glm(stroke~., data=train, family = binomial(link = "logit"))
+Logit <- glm(stroke~., data=train_smoted, family = binomial(link = "logit"))
 summary(Logit)
 vif(Logit)
 ```
@@ -330,12 +330,14 @@ We will now evaluate our model over the test set.
 ```{r}
 library(caret)
 lr_prob1 <- predict(Logit, newdata = test, type = "response")
-lr_pred1 <- ifelse(lr_prob1 > 0.1,"Yes","No")
-confusionMatrix(
-  as.factor(lr_pred1),
-  as.factor(test$stroke),
-  positive = "Yes" 
-)
+lr_pred1 <- ifelse(lr_prob1 > 0.65,"Yes","No")
+
+tb <- table(Predicted = lr_pred1, Actual = test$stroke)[2:1, 2:1]
+tb
+print(paste0("Accuracy: ", (tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2])))
+print(paste0("F1: ", F_meas(tb)))
+print(paste0("Recall: ", recall(tb))) 
+print(paste0("Precision: ", precision(tb))) 
 ```
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
@@ -375,6 +377,7 @@ logit_fit <- train(stroke ~., data = train_smoted, method = "LogitBoost", trCont
                    metric= "ROC"
                    )
 logit_fit
+
 ```
 
 We can notice in the output above that boosting our model slightly improves its accuracy (AUC from 85\% to 86.6\%) when 102 iterations are computed.
@@ -382,50 +385,62 @@ We can notice in the output above that boosting our model slightly improves its 
 ```{r, echo=FALSE}
 plot(logit_fit)
 ```
+```{r predicting boost}
+pred <- round(predict(logit_fit, newdata = test, type = "prob"),3)
 
+
+pred <- as.factor(ifelse(pred[2] > 0.6 ,1,0))
+tb <- table(Predicted = pred, Actual = test$stroke)[2:1, 2:1]
+tb
+
+print(paste0("Accuracy: ", round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
+print(paste0("F1: ", round(F_meas(tb),2)))
+print(paste0("Recall: ", round(recall(tb),2)))
+print(paste0("Precision: ", round(precision(tb),2))) 
+
+```
 To try and achieve an even higher level of accuracy, we used a random forest.
 
-```{r, warning=FALSE, message=FALSE}
+```{r message=FALSE, warning=FALSE}
 
 # Explore possibilities with more "BlackBox" alghorithms like Random Forest
 
 # Random Forest -----------------------------
 for (i in 1:11) {
-  levels(train_smoted[,i]) <- make.names(c(levels(train_smoted[,i])))
+  levels(train[,i]) <- make.names(c(levels(train[,i])))
 }
 
 for (i in 1:11) {
   levels(test[,i]) <- make.names(c(levels(test[,i])))
 }
 
-
-control <- trainControl(method='boot632', 
-                        number=2, 
-                        repeats=3,
-                        search = "grid",
-                        classProbs = T,
-                        summaryFunction = twoClassSummary,
-                        allowParallel=T
-                        )
-
-# Metric compare model is Accuracy
-metric <- "Accuracy"
-
-#Number randomely variable selected is mtry
-mtry <- sqrt(ncol(train))
-
-tunegrid <- expand.grid(.mtry=rnorm(3,mean=mtry,sd=1)
-                        )
+# 
+# control <- trainControl(method='repeatedcv', 
+#                         number=3, 
+#                         repeats=5,
+#                         search = "grid",
+#                         #sampling = 'smote',
+#                         allowParallel=T
+#                         )
+# 
+# # Metric compare model is Accuracy
+# metric <- "Accuracy"
+# 
+# #Number randomely variable selected is mtry
+# mtry <- sqrt(ncol(train))
+# 
+# tunegrid <- expand.grid(.mtry=mtry+6)
+#                         
 # train the model
- rf <- caret::train(stroke~.,
-                     data=train_smoted,
-                     method='rf',
-                     metric= metric,
-                     tuneGrid=tunegrid,
-                     trControl=control
-                     )
+# rf <- caret::train(stroke~.,
+#                      data=train_smoted,
+#                      method='rf',
+#                      metric= metric,
+#                      tuneGrid=tunegrid,
+#                      trControl=control
+#                      )
 
- saveRDS(rf, "rf_model.rds")
+#saveRDS(rf, "rf_model.rds")
 
 rf <- readRDS("rf_model.rds")
 
