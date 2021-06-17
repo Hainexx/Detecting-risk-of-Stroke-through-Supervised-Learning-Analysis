@@ -306,7 +306,9 @@ At this point, looking at these results, we could name and describe the four gro
 \item \textbf{Group 4}: \textbf{Old Females}, average annual income and low spending score.
 \end{itemize}
 
-What emerged from this analysis is that for the same average annual income, younger people have a tendency to spend more than older people at a mall. Moreover, these spending habits seem not to be influenced by the gender of a given individual but solely by the age. 
+What emerged from this analysis is that for the same average annual income, younger people have a tendency to spend more than older people at a mall. Moreover, these spending habits seem not to be influenced by the gender of a given individual but solely by the age.
+
+If we had to use this analysis to propose some kind of marketing strategy, we would suggest the mall to invest more in pushing the products that are frequently bought by young people, and implement a strategy to attract the older people that are evidently not buying as much as they could.  
 
 
 
