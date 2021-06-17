@@ -415,31 +415,31 @@ for (i in 1:11) {
   levels(test[,i]) <- make.names(c(levels(test[,i])))
 }
 
-# 
-# control <- trainControl(method='repeatedcv', 
-#                         number=3, 
-#                         repeats=5,
-#                         search = "grid",
-#                         #sampling = 'smote',
-#                         allowParallel=T
-#                         )
-# 
-# # Metric compare model is Accuracy
-# metric <- "Accuracy"
-# 
-# #Number randomely variable selected is mtry
-# mtry <- sqrt(ncol(train))
-# 
-# tunegrid <- expand.grid(.mtry=mtry+6)
-#                         
+
+control <- trainControl(method='repeatedcv',
+                        number=3,
+                        repeats=5,
+                        search = "grid",
+                        #sampling = 'smote',
+                        allowParallel=T
+                        )
+
+# Metric compare model is Accuracy
+metric <- "Accuracy"
+
+#Number randomely variable selected is mtry
+mtry <- sqrt(ncol(train))
+
+tunegrid <- expand.grid(.mtry=mtry+6)
+
 # train the model
-# rf <- caret::train(stroke~.,
-#                      data=train_smoted,
-#                      method='rf',
-#                      metric= metric,
-#                      tuneGrid=tunegrid,
-#                      trControl=control
-#                      )
+rfss <- caret::train(stroke~.,
+                     data=train_smoted,
+                     method='rf',
+                     metric= metric,
+                     tuneGrid=tunegrid,
+                     trControl=control
+                     )
 
 #saveRDS(rf, "rf_model.rds")
 
@@ -458,6 +458,9 @@ print(paste0('Accuracy:', round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2
 print(paste0("F1: ", round(F_meas(tb),2)))
 print(paste0("Recall: ", round(recall(tb),2)))
 print(paste0("Precision: ", round(precision(tb),2))) 
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+plot(varImp(rf))
 ```
 
 \newpage
