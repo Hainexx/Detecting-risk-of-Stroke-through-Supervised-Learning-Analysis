@@ -46,7 +46,7 @@ summary(malldt[-1])
 
 \section{Data Cleaning}
 
-We removed the **CustomerID** variable and converted the **Gender** one in factor.
+We removed the **CustomerID** variable and converted the **Gender** variable in factor.
 
 ```{r}
 malldt$CustomerID <- NULL
@@ -86,7 +86,7 @@ boxplot(`Annual Income (k$)`~AgeGroup,data=malldt, col="#FF99CC")
 boxplot(`Spending Score (1-100)`~AgeGroup,data=malldt, col="#33CC66")
 ```
 
-The only interesting information we can retrieve from the plots is that the youngest (age between 15 and 34) have an **higher spending score**, but not other significant information stand out.
+The only interesting information we can retrieve from the plots is that the youngest (age between 15 and 34) have an **higher spending score**, but not other significant information stands out.
 
 ```{r, include=FALSE}
 # Remove the age groups
@@ -133,7 +133,8 @@ rect.hclust(malldt.hc.ward,k=8,border=c("red","green","blue"))
 
 \subsection{Ward Method}
 
-The **Ward Method** is clearly the best and from it we can see that there are 8 groups.
+The **Ward Method** is clearly the best one, it detects 8 groups in our data.
+Let us count how many observations there are in each group.
 
 ```{r}
 # Allocate obs into 8 groups
@@ -145,7 +146,7 @@ table(malldt.groups.ward)
 ```
 
 
-Below a table that shows for each group the mean value of each variable. 
+Then for every group we compute the mean value of each variable. 
 
 
 ```{r}
@@ -156,19 +157,21 @@ clusterdata.mean<-function(data,groups){
 clusterdata.mean(malldt,malldt.groups.ward)
 ```
 
-From it we can see that some groups are not so different with each other.
-
-Group 4 and group 5 differs significantly only for the **gender**, whereas the other variables are more or less in the same range. \
-Group 6 and group 8, on the other hand, differs significantly only for the **spending score**. \
+From this table we can see that there are many groups that are quite similar to each other, but there are also some interesting differences:
+\begin{itemize}
+\item \textbf{Gender}: the eight groups are evenly split between ones containing more males and one containing more females. 
+\item \textbf{Age}: group 4 and group 5 stand out from the rest, they contain people who tend to be older. Between groups 4 and 5 the only noticeable difference is the **gender**, whereas the other variables are more or less in the same range. \
+\item \textbf{Annual income}: the groups could be divided in two. Groups 1 to 5 have annual incomes between 40.000\$ and 60.000\$, then there is quite a big jump in groups 6 to 8, which all have annual incomes above 80.000\$. 
+\item \textbf{Spending score}: the spending score varies quite a lot among the groups, even between groups that are similar in other aspects. For example, groups 7 and 8 are quite close in age and annual income, but males appear to have a much higher spending score than females. 
 
 We have obtained a good result, but it can still be improved, since there are clear overlappings between the groups we got.
 
 
 \section{K-Means algorithm}
 
-Now we apply the K-means algorithm.
+In order to refine our grouping, we now apply the K-means algorithm.
 
-First we have to remove the categorical variable **Gender** from the code because
+First we need to remove the categorical variable **Gender** from the code because
 the algorithm only supports numerical variables.
 
 ```{r}
@@ -176,6 +179,8 @@ malldtstd<-scale(malldt[,-1])
 ```
 
 \subsection{Finding K}
+
+Then we need to find the right value for k to use in the K-means algorithm.
 
 ```{r}
 set.seed(42)
@@ -193,7 +198,7 @@ Let's try with k=4, k=5 and k=6 and evaluate their performances with the
 
 This refers to a method of interpretation and validation of consistency within clusters of data. The technique provides a succinct graphical representation of how well each object has been classified.
 
-The silhouette value is a measure of how similar an object is to its own cluster (cohesion) compared to other clusters (separation). The silhouette ranges from 1 to +1, where a high value indicates that the object is well matched to its own cluster and poorly matched to neighboring clusters.
+The silhouette value is a measure of how similar an object is to its own cluster (cohesion) compared to other clusters (separation). The silhouette ranges from \-1 to +1, where a high value indicates that the object is well matched to its own cluster and poorly matched to neighboring clusters.
 
 ```{r, echo = T, results = 'hide'}
 kmeans4<-kmeans(malldt[,-1],4)
@@ -234,12 +239,12 @@ grid.arrange(rasterGrob(groups_4), avg_s_4,
 ```
 
 
-From the plots on the left we can see if the groups are well defined or if they overlap.
-It is clear that the higher the value of k, the higher the problems of overlapping.
+From the plots on the left we can see whether the groups are well defined or they overlap.
+It is clear that the higher is the value of k, the bigger are the problems of overlapping.
 
 Moreover, as we can see from the plots on the right, k=4 has also the best average silhouette value (0.39). From these plots it is also evident that k=4 has no observation with a negative silhouette value.
 
-We decided to check this last point, searching for every exact observations with negative silhouette value.
+We decided to check this last point, searching for every exact observations with a negative silhouette value.
 
 
 ```{r}
@@ -260,9 +265,50 @@ sil6[neg_sil_index6,]
 
 ```
 
+This again confirms that with k=4 we obtain zero observations with negative silhouette value, whereas with k=5 and k=6 we have respectively 7 and 10 observation of this kind.
+
+Now that we have found the best value to use for 4, we plot another dendrogram using the Ward Method but splitting it in just 4 gorups.
+
+```{r}
+malldt.hc.ward.1<-hclust(malldt.dist,method="ward.D2") 
+plot(malldt.hc.ward.1, main="Ward Method") 
+rect.hclust(malldt.hc.ward.1,k=4,border=c("red","green","blue"))
+```
+
+Now let's see the means of the variables in the new groups to try and identify the characteristics that define the groups.
+
+```{r}
+# Allocate obs into 4 groups
+malldt.groups.ward.1<-cutree(malldt.hc.ward.1 ,k=4) 
+malldt.groups.ward.1
+
+# Number of observations in each group
+table(malldt.groups.ward.1)
+```
+
+```{r}
+clusterdata.mean(malldt,malldt.groups.ward.1)
+```
+
+Now that the data is divided in 4 groups, some other observations can be done:
+\begin{itemize}
+\item \textbf{Gender}: the groups are still evenly split between females and males.
+\item \textbf{Age}: there is also a pretty even split in age. Two groups contain people that are around 30 years old on average and two groups are composed of people who are around 50 years old on average.
+\item \textbf{Annual income}: now the annual income is pretty even among the four groups, at around 60.000\$. 
+\item \textbf{Spending Score}: the spending scores can again be split in two. Younger people have a higher spending score than older people.
+\end{itemize}
+
+At this point, looking at these results, we could name and describe the four groups in the following way:
+\begin{itemize}
+\item \textbf{Group 1}: \textbf{Young Females}, average annual income and high spending score.
+\item \textbf{Group 2}: \textbf{Old Males}, average annual income and low spending score.
+\item \textbf{Group 3}: \textbf{Young Males}, average annual income and high spending score.
+\item \textbf{Group 4}: \textbf{Old Females}, average annual income and low spending score.
+\end{itemize}
+
+What emerged from this analysis is that for the same average annual income, younger people have a tendency to spend more than older people at a mall. Moreover, these spending habits seem not to be influenced by the gender of a given individual but solely by the age. 
 
 
-This again confirms that with k=4 we obtain zero observations with negative silhouette value, whereas with k=5 and k=6 we have respectevely 7 and 10 observation of this kind.
 
 
 
