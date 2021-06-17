@@ -1,6 +1,6 @@
 ---
-title: "First Paper - Stroke Analysis"
-author: "Ordinary Leading Students"
+title: "Detecting risk of Stroke through Supervised Learning Analysis"
+author: "Group 11: Ordinary Leading Students"
 date: "6/02/2021"
 output:
   pdf_document: default
@@ -280,7 +280,7 @@ We will now begin splitting our dataset in train/test.\
 
 ```{r}
 # Set a fixed seed in order to have reproducible results
-set.seed(36)
+set.seed(42)
 
 # 60-40 split
 split_train_test <- createDataPartition(y = dataset$stroke, p=0.6, list = F)
@@ -296,7 +296,7 @@ print(table(test$stroke))
 Since our dataset has a problem of under sampling, we will use the \href{https://arxiv.org/pdf/1106.1813.pdf}{SMOTE} algorithm to create synthetic new data.\
 ```{r, warning=FALSE, message=FALSE}
 # New smote algorithm
-train_smoted <- SMOTE_NC(train, "stroke", k = 2)
+train_smoted <- SMOTE_NC(train, "stroke", k = 2, perc_maj = 50)
 
 # Now we have a balanced dataset
 table(train_smoted$stroke)
@@ -361,13 +361,13 @@ Boosting is a technique used that convert weak learners to strong ones, and it w
 Notice that, when they are added to the model, all the learners are weighted with relation to their prediction accuracy.
 
 ```{r}
-gbmGrid <- expand.grid(nIter=c(16,34,102))
+gbmGrid <- expand.grid(nIter=c(88,102,112,120,135))
 
 
 trctrl <- trainControl(method = "cv"
-                       , number = 3
-                      # , repeats = 5
-                      # , search = "random"
+                       , number = 10
+                       #, repeats = 10
+                       #, search = "random"
                        , classProbs = T
                        , summaryFunction = twoClassSummary
                        )
@@ -386,14 +386,15 @@ We can notice in the output above that boosting our model slightly improves its 
 plot(logit_fit)
 ```
 ```{r predicting boost}
+
 pred <- round(predict(logit_fit, newdata = test, type = "prob"),3)
 
 
-pred <- as.factor(ifelse(pred[2] > 0.6 ,1,0))
+pred <- as.factor(ifelse(pred[2] > 0.5,'Yes','No'))
 tb <- table(Predicted = pred, Actual = test$stroke)[2:1, 2:1]
 tb
 
-print(paste0("Accuracy: ", round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
+print(paste0('Accuracy:', round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
 print(paste0("F1: ", round(F_meas(tb),2)))
 print(paste0("Recall: ", round(recall(tb),2)))
 print(paste0("Precision: ", round(precision(tb),2))) 
@@ -453,10 +454,10 @@ tb
 
 ```
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-print(paste0("Accuracy: ", (tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2])))
-print(paste0("F1: ", F_meas(tb)))
-print(paste0("Recall: ", recall(tb))) 
-print(paste0("Precision: ", precision(tb))) 
+print(paste0('Accuracy:', round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
+print(paste0("F1: ", round(F_meas(tb),2)))
+print(paste0("Recall: ", round(recall(tb),2)))
+print(paste0("Precision: ", round(precision(tb),2))) 
 ```
 
 \newpage
