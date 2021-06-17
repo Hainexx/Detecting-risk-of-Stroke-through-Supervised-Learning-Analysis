@@ -1,14 +1,15 @@
- *.DS_Store
- *.RData
- *.Rhistory
- .RData
- .Rhistory
- .DS_Store
- NTBL*
- *.pdf
- *.html
- first_paper/nul 
+*.DS_Store
+*.RData
+*.Rhistory
+.RData
+.Rhistory
+.DS_Store
+NTBL*
+*.pdf
+*.html
+first_paper/nul 
 .DS_Store
 second_paper/.Rhistory
 first_paper/report.pdf
 .pdf
+first_paper/report_files/
