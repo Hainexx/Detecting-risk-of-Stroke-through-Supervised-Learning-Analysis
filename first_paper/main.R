@@ -22,7 +22,6 @@
 # library(ggpubr)
 # library(mlr)
 
-
 library(tidyverse) 
 library(Hmisc)
 library(gmodels)
@@ -34,7 +33,7 @@ library(pROC)
 library(readr)
 library(GoodmanKruskal)
 library(corrplot)
-#remotes::install_github("dongyuanwu/RSBID")
+remotes::install_github("dongyuanwu/RSBID")
 library(RSBID) #cmd above to install it
 
 
@@ -158,7 +157,7 @@ corrplot(corr$r, type = "upper", tl.col = "black", tl.srt = 45)
 
 stroke <- as.data.frame(stroke)
 set.seed(36)
-split_train_test <- createDataPartition(y = stroke$stroke, p=0.5, list = F)
+split_train_test <- createDataPartition(y = stroke$stroke, p=0.6, list = F)
 train <- stroke[split_train_test,]
 test <-  stroke[-split_train_test,]
 
@@ -178,11 +177,9 @@ table(train_smoted$stroke)
 Logit <- glm(stroke ~., data=as.data.frame(train), family = binomial(link = 'logit'))
 summary(Logit)
 
-lr_prob1 <- predict(Logit, newdata = test, type = "response")
 vif(logit) #shows there is no multicollinearity in the data
 
 lr_prob1 <- predict(Logit, newdata = test)
-
 
 lr_preds_test <- c(0,0,0,0,0,0,0,0,0,0,0)
 i<-1
