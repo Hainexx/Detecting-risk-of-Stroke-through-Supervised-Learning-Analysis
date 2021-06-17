@@ -12,7 +12,7 @@ header-includes:
 urlcolor: blue
 ---
 
-```{r, include=FALSE, message=FALSE}
+```{r, include=FALSE, message=FALSE,echo=FALSE}
 
 # Load libraries
 library(ggplot2)        # Basic plots
@@ -74,7 +74,7 @@ We will now load and present our dataset (that can be retrieved at the following
 \item stroke = $\begin{cases} 1 \quad \text{if the patient had a stroke}\\  0 \quad \text{otherwise} \end{cases}$
 \end{enumerate}
 \newpage
-```{r}
+```{r echo=FALSE}
 # Load and summarize dataset
 dataset = read.csv("stroke.csv")
 str(dataset)
@@ -85,7 +85,7 @@ str(dataset)
 
 We convert our variables to the right data type and we show the updated summary.\
 
-```{r, warning=FALSE}
+```{r, warning=FALSE,echo=FALSE}
 # Remove id column (useless)
 dataset$id = NULL
 
@@ -197,7 +197,7 @@ Let us inspect this even further with some plots.
 
 \newpage
 
-```{r, echo=FALSE, warning=FALSE, message=FALSE}
+```{r, echo=FALSE, warning=FALSE, message=FALSE,echo=FALSE}
 factors_plot(tidy(table(dataset %>% dplyr::select(ever_married,work_type))), palette='Blues',
                          font_count_size=4, font_normalized_size=5.1, font_percentages_size=2.5,
                          font_categories_size=10)
@@ -207,7 +207,7 @@ factors_plot(tidy(table(dataset %>% dplyr::select(ever_married,work_type))), pal
 This plot shows why there is correlation between the variables work_type and ever_married: the levels Never_worked and children in the work_type variable both have 0% of observations who have ever been married. This is unserstandable since children can't be married and people who have never worked are young are really likely to have never been married.
 
 
-```{r, include=FALSE, message=FALSE}
+```{r, include=FALSE, message=FALSE,echo=FALSE}
 #finding the intercept to use in the next plot
 fit <- lm(bmi~age, data=dataset)
 fit
@@ -227,7 +227,7 @@ However, this correlation is not strong enough to influence our model later on.
 In order to facilitate our work, we removed the level **other** from the variable gender and the level **never_worked** from the variable work_type, since they are not relevant for the analysis.\
 
 \textbf{SHOULD WE REMOVE UNKNNOWN SMOKING STATUS???}
-```{r}
+```{r echo=FALSE}
 # Remove rows
 dataset = dataset %>%
           filter(gender != 'Other') %>%
@@ -241,7 +241,7 @@ dataset = droplevels(dataset)
 
 We now look for NA values in our dataset:
 
-```{r}
+```{r echo=FALSE}
 # Check for NA in all columns
 for (col_name in colnames(dataset)){
    if (anyNA(dataset[[col_name]]))
@@ -251,7 +251,7 @@ for (col_name in colnames(dataset)){
 
 We notice that we have 201 NA just in the **bmi** variable. In order to avoid losing these rows, given that we already have a small dataset, we will predict their values using a fitted tree.\
 
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE,echo=FALSE}
 
 # Define test set as set with missing data
 missing_index <- which(is.na(dataset$bmi))
@@ -278,7 +278,7 @@ rm(test_set, train_set, tree, bmi_pred, missing_index)
 
 We will now begin splitting our dataset in train/test.\
 
-```{r}
+```{r echo=FALSE}
 # Set a fixed seed in order to have reproducible results
 set.seed(42)
 
@@ -294,7 +294,7 @@ print(table(test$stroke))
 \subsection{SMOTE algorithm}
 
 Since our dataset has a problem of under sampling, we will use the \href{https://arxiv.org/pdf/1106.1813.pdf}{SMOTE} algorithm to create synthetic new data.\
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE,echo=FALSE}
 # New smote algorithm
 train_smoted <- SMOTE_NC(train, "stroke", k = 2, perc_maj = 50)
 
@@ -307,7 +307,7 @@ Notice that the SMOTE algorithm was only applied to the train set, this is done 
 
 We perform a logistic regression using  \textbf{stroke} as the dependent variable and the rest of the data as independent variables in order to see if we find some significant relationships.
 
-```{r}
+```{r echo=FALSE}
 Logit <- glm(stroke~., data=train_smoted, family = binomial(link = "logit"))
 summary(Logit)
 vif(Logit)
@@ -327,7 +327,7 @@ indicates an almost total absence of multicollineairty.
 We will now evaluate our model over the test set.
 
 
-```{r}
+```{r echo=FALSE}
 library(caret)
 lr_prob1 <- predict(Logit, newdata = test, type = "response")
 lr_pred1 <- ifelse(lr_prob1 > 0.65,"Yes","No")
@@ -342,7 +342,7 @@ print(paste0("Precision: ", precision(tb)))
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
 ```
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE,echo=FALSE}
 print(test_roc$auc)
 ```
 As we can see from the outputs above, our model does not perform very well. 
@@ -360,7 +360,7 @@ The problem of this underperforming model could be addressed in two different wa
 Boosting is a technique used that convert weak learners to strong ones, and it works by iteratively learning weak classifiers with respect to a distribution and adding them to a final strong classifier.
 Notice that, when they are added to the model, all the learners are weighted with relation to their prediction accuracy.
 
-```{r}
+```{r echo=FALSE}
 gbmGrid <- expand.grid(nIter=c(88,102,112,120,135))
 
 
@@ -385,7 +385,7 @@ We can notice in the output above that boosting our model slightly improves its 
 ```{r, echo=FALSE}
 plot(logit_fit)
 ```
-```{r predicting boost}
+```{r predicting boost, echo=FALSE}
 
 pred <- round(predict(logit_fit, newdata = test, type = "prob"),3)
 
@@ -402,7 +402,7 @@ print(paste0("Precision: ", round(precision(tb),2)))
 ```
 To try and achieve an even higher level of accuracy, we used a random forest.
 
-```{r message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 # Explore possibilities with more "BlackBox" alghorithms like Random Forest
 
@@ -453,7 +453,7 @@ tb <- table(Predicted = model_rf, Actual = test$stroke)[2:1, 2:1]
 tb
 
 ```
-```{r, message=FALSE, warning=FALSE, echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 print(paste0('Accuracy:', round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
 print(paste0("F1: ", round(F_meas(tb),2)))
 print(paste0("Recall: ", round(recall(tb),2)))
