@@ -301,7 +301,9 @@ train_smoted <- SMOTE_NC(train, "stroke", k = 2, perc_maj = 50)
 # Now we have a balanced dataset
 print('This was the regular training set balance between the response classes:')
 table(train$stroke)
-print('This is the oversampled one. Notice that we could have oversampled since reaching the perfect balance. This is, altough, not advisable. We can obtain better performances helping the algorithms understand this still is a minority class and indeed, we do.')
+```
+This is the oversampled one. Notice that we could have oversampled since reaching the perfect balance. This is, altough, not advisable. We can obtain better performances helping the algorithms understand this still is a minority class and indeed, we do.
+```{r}
 table(train_smoted$stroke)
 ```
 Notice that the SMOTE algorithm was only applied to the train set, this is done on purpose to avoid the evaluation of our final model on synthetic data.\
@@ -311,7 +313,7 @@ Take the difference between the feature vector (sample) under consideration and 
 
 \subsection{Logistic Regression}
 
-We perform a logistic regression using  \textbf{stroke} as the dependent variable and the rest of the data as independent variables in order to see if we find some significant relationships.
+We perform a logistic regression using \textbf{stroke} as the dependent variable and the rest of the data as independent variables in order to see if we find some significant relationships.
 
 ```{r echo=FALSE}
 Logit <- glm(stroke~., data=train_smoted, family = binomial(link = "logit"))
