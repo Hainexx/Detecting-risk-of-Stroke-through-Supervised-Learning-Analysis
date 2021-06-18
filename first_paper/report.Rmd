@@ -249,7 +249,8 @@ for (col_name in colnames(dataset)){
 }
 ```
 
-We notice that we have 201 NA just in the **bmi** variable. In order to avoid losing these rows, given that we already have a small dataset, we will predict their values using a fitted tree.\
+We notice that we have 201 NA just in the **bmi** variable.
+In order to avoid losing these rows, given that we already have a small dataset, we will predict their values using a Decision Tree to approximate its value.\
 
 ```{r, warning=FALSE, message=FALSE,echo=FALSE}
 
@@ -293,15 +294,21 @@ print(table(test$stroke))
 
 \subsection{SMOTE algorithm}
 
-Since our dataset has a problem of under sampling, we will use the \href{https://arxiv.org/pdf/1106.1813.pdf}{SMOTE} algorithm to create synthetic new data.\
+Since our dataset has a problem of unbalance, we will use the \href{https://arxiv.org/pdf/1106.1813.pdf}{SMOTE} algorithm to create synthetic new data.\
 ```{r, warning=FALSE, message=FALSE,echo=FALSE}
 # New smote algorithm
 train_smoted <- SMOTE_NC(train, "stroke", k = 2, perc_maj = 50)
 
 # Now we have a balanced dataset
+print('This was the regular training set balance between the response classes:')
+table(train$stroke)
+print('This is the oversampled one. Notice that we could have oversampled since reaching the perfect balance. This is, altough, not advisable. We can obtain better performances helping the algorithms understand this still is a minority class and indeed, we do.')
 table(train_smoted$stroke)
 ```
-Notice that the SMOTE algorithm was only applied to the train set, this is done on pourpose to avoid the evaluation of our final model on synthetic data.\
+Notice that the SMOTE algorithm was only applied to the train set, this is done on purpose to avoid the evaluation of our final model on synthetic data.\
+The minority class is over-sampled by taking each minority class sample and introducing synthetic examples along the line segments joining any/all of the k minority class nearest neighbors.
+![Synthetic Minority Oversampling TEchnique](image_0.png)
+Take the difference between the feature vector (sample) under consideration and its nearest neighbor. Multiply this difference by a random number between 0 and 1, and add it to the feature vector under consideration. This causes the selection of a random point along the line segment between two specific features.
 
 \subsection{Logistic Regression}
 
@@ -313,14 +320,15 @@ summary(Logit)
 vif(Logit)
 ```
 
-The only significant variables are **age**, **hypertension** and **average glucose level**, 
+The significant variables are `age, heart disease, average glucose level and smoking status`, 
 which have a positive impact on the increase of the logit probability.
+Note `gender Male` and `Married`.
 
 Now we can also state with certainty that there is no multicollinearity in our data, due to the results
 of the variance inflation factor test. In fact, all the values of the VIF are very close to 1, which 
 indicates an almost total absence of multicollineairty.
 
-**ADDRESS UNKNOWN SMOKING STATUS PROBLEM**
+
 
 \subsection{Confusion Matrix and Statistics}
 
@@ -330,14 +338,12 @@ We will now evaluate our model over the test set.
 ```{r echo=FALSE}
 library(caret)
 lr_prob1 <- predict(Logit, newdata = test, type = "response")
-lr_pred1 <- ifelse(lr_prob1 > 0.65,"Yes","No")
+lr_pred1 <- ifelse(lr_prob1 > 0.5,"Yes","No")
 
 tb <- table(Predicted = lr_pred1, Actual = test$stroke)[2:1, 2:1]
-tb
-print(paste0("Accuracy: ", (tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2])))
+
+confusionMatrix(tb)
 print(paste0("F1: ", F_meas(tb)))
-print(paste0("Recall: ", recall(tb))) 
-print(paste0("Precision: ", precision(tb))) 
 ```
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
@@ -346,27 +352,28 @@ test_roc <- roc(as.numeric(test$stroke)~lr_prob1 , plot = TRUE, print.auc = TRUE
 print(test_roc$auc)
 ```
 As we can see from the outputs above, our model does not perform very well. 
-With a threshold over 0.1 it predicts correctly just 62.6\% of the positive results (in our case, people who suffered a stroke), at the expense of 16\% of false positives.
-Because this is such a sensitive subject, we would definitely prefer having more false positives than false negatives, but lowering our threshold, say to 0.05, increase our sensitivity to 81.8\%, but it lowers the specificity to 71.7\% (from 83.7\%).
+it correctly predicts just bit more than 50\% of the positive results (in our case, people who suffered a stroke), at the expense of a lot of false positives.
+Because this is such a sensitive subject, we would definitely prefer having more false positives than false negatives.
 
 The problem of this underperforming model could be addressed in two different ways:
 \begin{enumerate}
 \item We could speak with the stakeholders to understand how to best tune our threshold. In a real-world scenario this would translate into a discussion regarding the number of people we can take care of, even if they are false positives, in order to avoid rejecting people who actually need our help.
+
 \item We could try and increase the accuracy of our model, and we will do that below using a Boosting technique.
 \end{enumerate}
 
 \section{Boosting}
 
-Boosting is a technique used that convert weak learners to strong ones, and it works by iteratively learning weak classifiers with respect to a distribution and adding them to a final strong classifier.
+Boosting is a technique used that convert weak learners to strong ones, and it works by sequentially learning weak classifiers with respect to a distribution and adding them to a final strong classifier.
 Notice that, when they are added to the model, all the learners are weighted with relation to their prediction accuracy.
 
 ```{r echo=FALSE}
-gbmGrid <- expand.grid(nIter=c(88,102,112,120,135))
+gbmGrid <- expand.grid(nIter=c(120,135,230,350,500))
 
 
-trctrl <- trainControl(method = "cv"
+trctrl <- trainControl(method = "repeatedcv"
                        , number = 10
-                       #, repeats = 10
+                       , repeats = 5
                        #, search = "random"
                        , classProbs = T
                        , summaryFunction = twoClassSummary
@@ -379,33 +386,42 @@ logit_fit <- train(stroke ~., data = train_smoted, method = "LogitBoost", trCont
 logit_fit
 
 ```
-
-We can notice in the output above that boosting our model slightly improves its accuracy (AUC from 85\% to 86.6\%) when 102 iterations are computed.
-
 ```{r, echo=FALSE}
 plot(logit_fit)
 ```
-```{r predicting boost, echo=FALSE}
-
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
 pred <- round(predict(logit_fit, newdata = test, type = "prob"),3)
-
-
-pred <- as.factor(ifelse(pred[2] > 0.5,'Yes','No'))
-tb <- table(Predicted = pred, Actual = test$stroke)[2:1, 2:1]
-tb
-
-print(paste0('Accuracy:', round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
-print(paste0("F1: ", round(F_meas(tb),2)))
-print(paste0("Recall: ", round(recall(tb),2)))
-print(paste0("Precision: ", round(precision(tb),2))) 
-
+prob <- unlist(pred[2])
 ```
-To try and achieve an even higher level of accuracy, we used a random forest.
+
+
+```{r predicting boost, echo=FALSE}
+preds <- as.factor(ifelse(pred[2] > 0.5,'Yes','No'))
+
+
+tb <- table(Predicted = preds, Actual = test$stroke)[2:1, 2:1]
+
+
+#print(paste0('Accuracy:', round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
+
+#print(paste0("Recall: ", round(recall(tb),2)))
+#print(paste0("Precision: ", round(precision(tb),2))) 
+
+confusionMatrix(tb)
+print(paste0("F1: ", round(F_meas(tb),2)))
+```
+```{r echo=FALSE}
+test_roc <- roc(as.numeric(test$stroke)~prob , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+```
+We can notice in the output above that boosted logistic our model improves its accuracy at a constant threshold of 0.5 (from 82\% to 90\%) when 5000 iterations are computed but with a worst ROC AUC (74\%).
+
+It would probably be better to stand with a lower threshold and let space for less accuracy and more Sensitivity.
+
+\section{Random Forest}
+We further proceed with our last model. We're going to train a random forest with Repeated Cross Validation.
+for what it concerns the number of var at every tree, we're going to use the squared root of nVar + 6 since the number of significant variables is pretty tight
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-
-# Explore possibilities with more "BlackBox" alghorithms like Random Forest
-
 # Random Forest -----------------------------
 for (i in 1:11) {
   levels(train[,i]) <- make.names(c(levels(train[,i])))
@@ -420,7 +436,6 @@ control <- trainControl(method='repeatedcv',
                         number=3,
                         repeats=5,
                         search = "grid",
-                        #sampling = 'smote',
                         allowParallel=T
                         )
 
@@ -433,13 +448,13 @@ mtry <- sqrt(ncol(train))
 tunegrid <- expand.grid(.mtry=mtry+6)
 
 # train the model
-rfss <- caret::train(stroke~.,
-                     data=train_smoted,
-                     method='rf',
-                     metric= metric,
-                     tuneGrid=tunegrid,
-                     trControl=control
-                     )
+# rfss <- caret::train(stroke~.,
+#                      data=train_smoted,
+#                      method='rf',
+#                      metric= metric,
+#                      tuneGrid=tunegrid,
+#                      trControl=control
+#                      )
 
 #saveRDS(rf, "rf_model.rds")
 
@@ -447,19 +462,20 @@ rf <- readRDS("rf_model.rds")
 
 print(rf)
 model_rf <- predict(rf, newdata = test)
+model_rf_prob <- predict(rf, newdata = test, type = 'prob')
 
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 tb <- table(Predicted = model_rf, Actual = test$stroke)[2:1, 2:1]
-tb
+confusionMatrix(tb)
+
+print(paste0("F1: ", round(F_meas(tb),2)))
 
 ```
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-print(paste0('Accuracy:', round((tb[1:1,1:1] + tb[2:2, 2:2])/(tb[1:1,2:2] + tb[2:2, 1:1] + tb[1:1,1:1] + tb[2:2, 2:2]),2)))
-print(paste0("F1: ", round(F_meas(tb),2)))
-print(paste0("Recall: ", round(recall(tb),2)))
-print(paste0("Precision: ", round(precision(tb),2))) 
-```
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+test_roc <- roc(as.numeric(test$stroke)~as.numeric(unlist(model_rf_prob[2])) , plot = TRUE, print.auc = TRUE,percent=TRUE, ci=TRUE)
+
 plot(varImp(rf))
 ```
 
@@ -469,14 +485,13 @@ plot(varImp(rf))
 
 \section{Conclusion}
 
-In conclusion, we were able to construct a model that is able to predict with an 86% level of accuracy if an individual is more likely to suffer from a stroke than others based on his clinical records.
-To be more precise, we can state that:
+In conclusion, we were able to construct a model that is able to predict with an 95\% level of accuracy and with an outstanding 92\% of ROC_AUC if an individual is more likely to suffer from a stroke than others based on his clinical records.
+Furthermore, we can state that:
 \begin{itemize}
-\item \textbf{Age}: a one unit increase in age is associated with an increase in the log odds of having  a stroke by 0.07 units
-\item \textbf{Hypertension}: a one unit increase in hypertension is associated with an increase in the log odds of having  a stroke by 0.45 units
-\item \textbf{Average Glucose Level}: a one unit increase in average glucose level is associated with an increase in the log odds of having  a stroke by 0.003 units
+\item \textbf{Age}: Age is surely the most important variable for us to exclude whether or not a person is likely to suffer a stroke or not.
+\item \textbf{Average Glucose Level}: in terms of the logistic regression a one unit increase in average glucose level is associated with an increase in the log odds of having  a stroke by 0.003 units
+\item \textbf{BMI}: one Notable difference between the Random Forest and the Logistic Regression are BMI  and Smoking Status. While Logit model stated the latter as significant for our analysis and the first as not, the random forest attributes the third spot of the podium to the BMI and only a minor contribute to the smoking Status.
 \end{itemize}
-
 
 
 
