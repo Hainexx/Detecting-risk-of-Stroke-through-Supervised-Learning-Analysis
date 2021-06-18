@@ -226,7 +226,6 @@ However, this correlation is not strong enough to influence our model later on.
 
 In order to facilitate our work, we removed the level **other** from the variable gender and the level **never_worked** from the variable work_type, since they are not relevant for the analysis.\
 
-\textbf{SHOULD WE REMOVE UNKNNOWN SMOKING STATUS???}
 ```{r echo=FALSE}
 # Remove rows
 dataset = dataset %>%
