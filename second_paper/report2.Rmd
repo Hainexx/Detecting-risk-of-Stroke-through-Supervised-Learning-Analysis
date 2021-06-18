@@ -29,12 +29,15 @@ library(png)
 In this paper we are going to perform a cluster analysis on a dataset used for a 
 market basket analysis. Our goal is to find unknown subgroups in the dataset.
 
+First we are going to explore the dataset with boxplots. Then we are going to apply a hierarchical clustering, to have a clearer idea of how many subgroups can exists. Finally, we are going to apply the K-means algorithm, having in mind the structure of our dataset.
+
 \end{abstract}
 
 \section{Data}
-We will now load and present our dataset (that can be retrieved at the following [link](https://www.kaggle.com/vjchoudhary7/customer-segmentation-tutorial-in-python)). 
+We will now load and present our dataset (that can be retrieved at the following [link](https://www.kaggle.com/vjchoudhary7/customer-segmentation-tutorial-in-python)).\
+Below we show its summary.
 
-```{r, message=FALSE}
+```{r, message=FALSE, echo=FALSE}
 # Set the working directory and load the dataset
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
@@ -57,8 +60,12 @@ malldt$Gender <- as.factor(malldt$Gender)
 
 \section{Data Visualization}
 
+To start exploring our dataset we are going to build some boxplot.
 
-```{r}
+First we are going to divide it by **gender**.
+
+
+```{r echo=FALSE}
 # Gender Boxplots
 
 par(mfrow=c(1,2))
@@ -71,7 +78,10 @@ As we can see there are no meaningful differences between the genders group.
 
 \newpage
 
-```{r}
+After we explore the dataset through different **age ranges**.\
+To obtain meaningful information we created three ranges, adding a column to the dataset that later we are going to remove, since it is not gonna be useful anymore.
+
+```{r echo=FALSE}
 # Age Boxplots
 
 # Create age groups
@@ -95,7 +105,7 @@ malldt$AgeGroup <- NULL
 
 \newpage
 
-\section{Dendograms}
+\section{Dendrograms}
 
 Now we start finding subgroups using clustering techniques.
 
@@ -107,7 +117,8 @@ is computed as the average of partial dissimilarities across individuals.
 ```{r}
 # Gower distance works for mixed variables
 malldt.dist<-daisy(malldt,metric="gower")
-
+```
+```{r echo=FALSE}
 # Dendrograms
 malldt.hc.com<-hclust(malldt.dist,method="complete") 
 plot(malldt.hc.com, main="Complete Method") 
@@ -133,11 +144,11 @@ rect.hclust(malldt.hc.ward,k=8,border=c("red","green","blue"))
 
 \subsection{Ward Method}
 
-The **Ward Method** is clearly the best one, it detects 8 groups in our data.
-Let us count how many observations there are in each group.
+The **Ward Method** seems the best one: it detects 8 groups in our data.\
+Let us count how many observations there are in each group and explore how they are distributed.
 
-```{r}
-# Allocate obs into 8 groups
+```{r echo=FALSE}
+# Allocate the observation into 8 groups
 malldt.groups.ward<-cutree(malldt.hc.ward,k=8) 
 malldt.groups.ward
 
@@ -145,11 +156,11 @@ malldt.groups.ward
 table(malldt.groups.ward)
 ```
 
+\newpage
 
-Then for every group we compute the mean value of each variable. 
+Then for every group we compute the mean value of each variable, so we can explore their characteristics.
 
-
-```{r}
+```{r echo=FALSE}
 clusterdata.mean<-function(data,groups){
   aggregate(data,list(groups),function(x)mean(as.numeric(x)))
 }
@@ -163,6 +174,7 @@ From this table we can see that there are many groups that are quite similar to 
 \item \textbf{Age}: group 4 and group 5 stand out from the rest, they contain people who tend to be older. Between groups 4 and 5 the only noticeable difference is the **gender**, whereas the other variables are more or less in the same range. \
 \item \textbf{Annual income}: the groups could be divided in two. Groups 1 to 5 have annual incomes between 40.000\$ and 60.000\$, then there is quite a big jump in groups 6 to 8, which all have annual incomes above 80.000\$. 
 \item \textbf{Spending score}: the spending score varies quite a lot among the groups, even between groups that are similar in other aspects. For example, groups 7 and 8 are quite close in age and annual income, but males appear to have a much higher spending score than females. 
+\end{itemize}
 
 We have obtained a good result, but it can still be improved, since there are clear overlappings between the groups we got.
 
@@ -194,28 +206,26 @@ plot(1:k.max,wss,type="b",pch=19,xlab="Number of groups",ylab="Within Deviation"
 Let's try with k=4, k=5 and k=6 and evaluate their performances with the
 **silhuotte method**.
 
+\newpage
+
 \subsection{Silhoutte}
 
 This refers to a method of interpretation and validation of consistency within clusters of data. The technique provides a succinct graphical representation of how well each object has been classified.
 
 The silhouette value is a measure of how similar an object is to its own cluster (cohesion) compared to other clusters (separation). The silhouette ranges from \-1 to +1, where a high value indicates that the object is well matched to its own cluster and poorly matched to neighboring clusters.
 
-```{r, echo = T, results = 'hide'}
+```{r, echo = FALSE, results = 'hide'}
 kmeans4<-kmeans(malldt[,-1],4)
 kmeans5<-kmeans(malldt[,-1],5)
 kmeans6<-kmeans(malldt[,-1],6)
 
-# Evaluation of the clustering composition, images will be shown later
-#ris4<- eclust(malldt[,-1],"kmeans",k=4)
-#ris5<- eclust(malldt[,-1],"kmeans",k=5)
-#ris6<- eclust(malldt[,-1],"kmeans",k=6)
 ```
 ```{r, include=FALSE}
 ris4<- eclust(malldt[,-1],"kmeans",k=4)
 ris5<- eclust(malldt[,-1],"kmeans",k=5)
 ris6<- eclust(malldt[,-1],"kmeans",k=6)
 ```
-```{r, echo = T, results = 'hide'}
+```{r, echo = FALSE, results = 'hide'}
 # Dimensions and average of group's silhouette
 avg_s_4 <- fviz_silhouette(ris4) + labs(title= "K = 4",
                                         subtitle= " Avg Silhoutte width: 0.39")
@@ -240,14 +250,14 @@ grid.arrange(rasterGrob(groups_4), avg_s_4,
 
 
 From the plots on the left we can see whether the groups are well defined or they overlap.
-It is clear that the higher is the value of k, the bigger are the problems of overlapping.
+It is clear that the **higher** is the value of k, the bigger are the problems of overlapping.
 
 Moreover, as we can see from the plots on the right, k=4 has also the best average silhouette value (0.39). From these plots it is also evident that k=4 has no observation with a negative silhouette value.
 
 We decided to check this last point, searching for every exact observations with a negative silhouette value.
 
 
-```{r}
+```{r echo=FALSE}
 # Silhouette measure of each observation
 sil4<-ris4$silinfo$widths 
 sil5<-ris5$silinfo$widths
@@ -257,7 +267,8 @@ sil6<-ris6$silinfo$widths
 neg_sil_index4<-which(sil4[,'sil_width']<0)
 neg_sil_index5<-which(sil5[,'sil_width']<0)
 neg_sil_index6<-which(sil6[,'sil_width']<0)
-
+```
+```{r}
 # Observations with silhouette < 0
 sil4[neg_sil_index4,]
 sil5[neg_sil_index5,]
@@ -267,9 +278,13 @@ sil6[neg_sil_index6,]
 
 This again confirms that with k=4 we obtain zero observations with negative silhouette value, whereas with k=5 and k=6 we have respectively 7 and 10 observation of this kind.
 
+\newpage
+
+\section{Final Model}
+
 Now that we have found the best value to use for 4, we plot another dendrogram using the Ward Method but splitting it in just 4 gorups.
 
-```{r}
+```{r echo=FALSE}
 malldt.hc.ward.1<-hclust(malldt.dist,method="ward.D2") 
 plot(malldt.hc.ward.1, main="Ward Method") 
 rect.hclust(malldt.hc.ward.1,k=4,border=c("red","green","blue"))
@@ -277,7 +292,7 @@ rect.hclust(malldt.hc.ward.1,k=4,border=c("red","green","blue"))
 
 Now let's see the means of the variables in the new groups to try and identify the characteristics that define the groups.
 
-```{r}
+```{r echo=FALSE}
 # Allocate obs into 4 groups
 malldt.groups.ward.1<-cutree(malldt.hc.ward.1 ,k=4) 
 malldt.groups.ward.1
@@ -286,7 +301,7 @@ malldt.groups.ward.1
 table(malldt.groups.ward.1)
 ```
 
-```{r}
+```{r echo=FALSE}
 clusterdata.mean(malldt,malldt.groups.ward.1)
 ```
 
